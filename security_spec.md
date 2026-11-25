@@ -8,6 +8,7 @@
 5. **Canonical 1:1 DM Isolation**: `/dm_threads/{threadId}` has deterministic `threadId == user1Uid + "__" + user2Uid` where `user1Uid < user2Uid`, `participantUids.size() == 2`, and both read/list/write are restricted exclusively to those two UIDs.
 6. **Temporal Integrity & Atomicity**: All `createdAt`/`updatedAt`/`joinedAt`/`lastMessageAt` timestamps must equal `request.time`. Posting a chat message atomically updates the parent room/thread `lastMessageText` and `lastMessageAt` via `getAfter()`.
 7. **Size & Schema Bounds**: All document IDs match `^[a-zA-Z0-9_-]+$` (`<= 128` chars), every string has explicit `.size()` upper bounds, and `keys().hasAll(...)` + `keys().hasOnly(...)` block shadow fields.
+8. **Admin RBAC & Verified Bootstrapping**: `/admins/{userId}` can only be listed, created, or deleted by verified admins (`isBootstrappedAdmin()` checking `email == 'rndsjnd@gmail.com' && email_verified == true`, or an existing `/admins/$(request.auth.uid)` record with verified email). Self-promotion by non-admins is denied, and the primary owner record cannot be deleted.
 
 ## 2. The "Dirty Dozen" Attack Payloads (Expected: `PERMISSION_DENIED`)
 1. **Unverified / Unauthenticated Write**: Write to `/public_profiles/userA` with `request.auth == null` or `email_verified == false`.
@@ -22,3 +23,5 @@
 10. **Other User's DM Message Deletion**: User B attempts to `delete` a DM message sent by User A (`senderId == "userA"`).
 11. **Client Timestamp Forgery**: Create message with backdated `createdAt` instead of `request.time`.
 12. **Immutable Field Tampering**: Update `/open_rooms/room1` attempting to alter `createdBy` or `createdAt`, or update `/dm_threads/userA__userB` attempting to alter `participantUids`.
+13. **Admin Escalation / Unverified Spoof**: Regular user or user with `email: "rndsjnd@gmail.com"` & `email_verified: false` attempts to create or list `/admins/{uid}`.
+

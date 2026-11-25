@@ -10,11 +10,22 @@ import {
   CloudFog,
   Snowflake,
   RefreshCw,
+  Gauge,
+  Droplets,
+  Eye,
+  Sunrise,
+  Compass,
+  ShieldCheck,
+  Info,
 } from 'lucide-react';
 import {
   FishingWeatherData,
   MarineHourlyPoint,
+  assessAirQuality,
+  assessPressureTrend,
   assessSeaTemperature,
+  assessUvIndex,
+  assessVisibilityFog,
   assessWaveLevel,
   assessWindLevel,
   buildChartPoints,
@@ -109,12 +120,24 @@ export function MarineWeatherVisuals({
     : assessWindLevel(0);
   const waveAssessment = assessWaveLevel(weather?.waveHeightM);
   const sstAssessment = assessSeaTemperature(weather?.seaSurfaceTempC);
+  const pressureAssessment = assessPressureTrend(weather?.pressureHpa, weather?.pressureDelta3hHpa);
+  const visibilityAssessment = assessVisibilityFog(weather?.visibilityKm);
+  const airQualityAssessment = assessAirQuality(weather?.pm10, weather?.pm25);
+  const uvAssessment = assessUvIndex(weather?.uvIndex ?? weather?.uvIndexMax);
 
   const weatherText = weather ? describeWeatherCode(weather.weatherCode) : '확인 중';
   const windDirText = weather ? describeWindDirection(weather.windDirectionDeg) : '--';
   const waveDirText =
     weather && typeof weather.waveDirectionDeg === 'number'
       ? describeWindDirection(weather.waveDirectionDeg)
+      : null;
+  const swellDirText =
+    weather && typeof weather.swellDirectionDeg === 'number'
+      ? describeWindDirection(weather.swellDirectionDeg)
+      : null;
+  const currentDirText =
+    weather && typeof weather.oceanCurrentDirDeg === 'number'
+      ? describeWindDirection(weather.oceanCurrentDirDeg)
       : null;
 
   const airTempPercent = weather
@@ -303,11 +326,11 @@ export function MarineWeatherVisuals({
             </span>
             <span aria-hidden="true">·</span>
             <span>
-              {weather
+              {weather?.isLive
                 ? `${weather.modelLabel || '기상청(KMA) 보정 KST'}${
                     weather.observedAtKst ? ` · ${weather.observedAtKst}` : ''
                   }`
-                : '대한민국(KST) 기상 연동 중'}
+                : '예시 데이터'}
             </span>
             {weather?.marineReferenceLabel && (
               <>
@@ -347,6 +370,7 @@ export function MarineWeatherVisuals({
                     {weather.windSpeedMs.toFixed(1)}
                   </span>
                   <span className="text-xs font-mono text-[#A7C2D8]">m/s</span>
+                  <span className="text-[10px] font-mono text-[#A7C2D8]/80">(±1.5~2.5)</span>
                 </div>
                 <p className={`text-xs font-semibold ${levelTextColor(windAssessment.tone)}`}>
                   {windAssessment.label} · {windDirText} ({Math.round(weather.windDirectionDeg)}°)
@@ -419,10 +443,20 @@ export function MarineWeatherVisuals({
                     {weather.temperatureC.toFixed(1)}
                   </span>
                   <span className="text-xs font-mono text-[#A7C2D8]">°C</span>
+                  <span className="text-[10px] font-mono text-[#A7C2D8]/80">(±1.5~2.0)</span>
                 </div>
                 <p className="text-xs font-semibold text-[#36D6E8]">
                   {weatherText} · 강수량 {weather.precipitationMm.toFixed(1)} mm
                 </p>
+                {typeof weather.apparentTempC === 'number' && (
+                  <p className="text-[11px] text-[#A7C2D8] font-mono tabular-nums">
+                    체감 {weather.apparentTempC.toFixed(1)}°C
+                    {typeof weather.dailyMinTempC === 'number' &&
+                    typeof weather.dailyMaxTempC === 'number'
+                      ? ` · 최저 ${weather.dailyMinTempC.toFixed(0)}° / 최고 ${weather.dailyMaxTempC.toFixed(0)}°`
+                      : ''}
+                  </p>
+                )}
               </div>
 
               <div className="w-14 h-14 rounded-xl bg-[#103653]/80 border border-[#4B9FE8]/30 flex items-center justify-center shrink-0">
@@ -433,7 +467,12 @@ export function MarineWeatherVisuals({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px] text-[#A7C2D8] font-mono tabular-nums">
                 <span>체감 기온 (-5°~35°C)</span>
-                <span className="text-[#4B9FE8]">강수확률 {rainProb}%</span>
+                <span className="text-[#4B9FE8]">
+                  강수확률 {rainProb}%
+                  {typeof weather.dailyPrecipProbMax === 'number'
+                    ? ` (최대 ${weather.dailyPrecipProbMax}%)`
+                    : ''}
+                </span>
               </div>
               <div className="h-2 rounded-full bg-[#061B33] overflow-hidden border border-[#4B9FE8]/25">
                 <div
@@ -444,7 +483,7 @@ export function MarineWeatherVisuals({
               <p className="text-[11px] text-[#A7C2D8] leading-snug">
                 {rainProb >= 50
                   ? '비 예보가 있어 방수 방한복과 미끄럼 방지 신발을 챙기세요'
-                  : weather.temperatureC <= 8
+                  : (weather.apparentTempC ?? weather.temperatureC) <= 8
                   ? '해풍 체감온도가 낮으므로 보온 장갑·방풍 외투를 권장합니다'
                   : '야외 활동과 출조에 쾌적한 하늘과 기온 흐름입니다'}
               </p>
@@ -465,6 +504,9 @@ export function MarineWeatherVisuals({
                   <span className="text-xs font-mono text-[#A7C2D8]">
                     {weather.waveHeightM !== null ? 'm' : '관측 없음'}
                   </span>
+                  {weather.waveHeightM !== null && (
+                    <span className="text-[10px] font-mono text-[#A7C2D8]/80">(±0.2~0.3)</span>
+                  )}
                 </div>
                 <p className={`text-xs font-semibold ${levelTextColor(waveAssessment.tone)}`}>
                   {waveAssessment.label}
@@ -544,6 +586,9 @@ export function MarineWeatherVisuals({
                   <span className="text-xs font-mono text-[#A7C2D8]">
                     {typeof weather.seaSurfaceTempC === 'number' ? '°C' : '관측 없음'}
                   </span>
+                  {typeof weather.seaSurfaceTempC === 'number' && (
+                    <span className="text-[10px] font-mono text-[#A7C2D8]/80">(±1.0)</span>
+                  )}
                 </div>
                 <p className={`text-xs font-semibold ${levelTextColor(sstAssessment.tone)}`}>
                   {sstAssessment.zoneLabel}
@@ -628,6 +673,236 @@ export function MarineWeatherVisuals({
         </div>
       )}
 
+      {/* Detailed Atmospheric, Sun/UV, Swell/Current & Air Quality Grid */}
+      {weather && (
+        <div
+          data-testid="detailed-weather-grid"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5"
+        >
+          {/* A. 기압 & 변화 추이 */}
+          <div className="glass-subcard rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#A7C2D8] flex items-center gap-1.5">
+                <Gauge className="w-3.5 h-3.5 text-[#36D6E8]" /> 해면기압 · 3시간 추이
+              </span>
+              <span className={`text-[11px] font-semibold ${levelTextColor(pressureAssessment.tone)}`}>
+                {pressureAssessment.label}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 font-mono tabular-nums">
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-extrabold text-[#F4FAFF]">
+                  {typeof weather.pressureHpa === 'number' ? weather.pressureHpa.toFixed(1) : '--'}
+                </span>
+                <span className="text-[11px] text-[#A7C2D8]">hPa</span>
+              </div>
+              {typeof weather.pressureDelta3hHpa === 'number' && (
+                <span className="text-[11px] text-[#36D6E8]">
+                  3h {weather.pressureDelta3hHpa >= 0 ? '+' : ''}
+                  {weather.pressureDelta3hHpa.toFixed(1)} hPa ({weather.pressureTrend || '안정'})
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[#A7C2D8] leading-snug">{pressureAssessment.advice}</p>
+          </div>
+
+          {/* B. 습도 · 체감 · 이슬점 */}
+          <div className="glass-subcard rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#A7C2D8] flex items-center gap-1.5">
+                <Droplets className="w-3.5 h-3.5 text-[#4B9FE8]" /> 습도 · 체감 · 이슬점
+              </span>
+              <span className="text-[11px] font-mono tabular-nums text-[#36D6E8]">
+                {typeof weather.dewPointC === 'number'
+                  ? `이슬점 ${weather.dewPointC.toFixed(1)}°C`
+                  : '결로 주의 체크'}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 font-mono tabular-nums">
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-extrabold text-[#F4FAFF]">
+                  {typeof weather.humidityPct === 'number' ? weather.humidityPct : '--'}
+                </span>
+                <span className="text-[11px] text-[#A7C2D8]">%</span>
+              </div>
+              <span className="text-xs text-[#F4FAFF]">
+                체감{' '}
+                <strong className="text-[#36D6E8]">
+                  {typeof weather.apparentTempC === 'number'
+                    ? `${weather.apparentTempC.toFixed(1)}°C`
+                    : '--'}
+                </strong>
+              </span>
+            </div>
+            <p className="text-[11px] text-[#A7C2D8] leading-snug">
+              {typeof weather.humidityPct === 'number' && weather.humidityPct >= 82
+                ? '습도가 높아 새벽·야간 방파제 바닥 결로 및 미끄럼에 유의하세요'
+                : '적정 습도로 장비 결로나 체온 저하 부담이 적습니다'}
+            </p>
+          </div>
+
+          {/* C. 가시거리(해무) · 운량 */}
+          <div className="glass-subcard rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#A7C2D8] flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-[#36D6E8]" /> 가시거리 · 운량
+              </span>
+              <span className={`text-[11px] font-semibold ${levelTextColor(visibilityAssessment.tone)}`}>
+                {visibilityAssessment.label}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 font-mono tabular-nums">
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-extrabold text-[#F4FAFF]">
+                  {typeof weather.visibilityKm === 'number' ? weather.visibilityKm.toFixed(1) : '--'}
+                </span>
+                <span className="text-[11px] text-[#A7C2D8]">km</span>
+              </div>
+              <span className="text-[11px] text-[#A7C2D8]">
+                운량{' '}
+                <strong className="text-[#F4FAFF]">
+                  {typeof weather.cloudCoverPct === 'number' ? `${weather.cloudCoverPct}%` : '--'}
+                </strong>
+              </span>
+            </div>
+            <p className="text-[11px] text-[#A7C2D8] leading-snug">{visibilityAssessment.advice}</p>
+          </div>
+
+          {/* D. 일출 · 일몰 · 자외선(UV) */}
+          <div className="glass-subcard rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#A7C2D8] flex items-center gap-1.5">
+                <Sunrise className="w-3.5 h-3.5 text-amber-300" /> 일출 · 일몰 · 자외선
+              </span>
+              <span className={`text-[11px] font-semibold ${levelTextColor(uvAssessment.tone)}`}>
+                UV {uvAssessment.label}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2 font-mono tabular-nums text-xs">
+              <span className="text-[#F4FAFF]">
+                일출 <strong className="text-[#36D6E8]">{weather.sunriseKst || '--:--'}</strong> · 일몰{' '}
+                <strong className="text-amber-300">{weather.sunsetKst || '--:--'}</strong>
+              </span>
+              <span className="text-[11px] text-[#A7C2D8]">
+                UV{' '}
+                <strong className="text-[#F4FAFF]">
+                  {typeof weather.uvIndex === 'number' ? weather.uvIndex.toFixed(1) : '--'}
+                </strong>
+                {typeof weather.uvIndexMax === 'number' ? ` (최고 ${weather.uvIndexMax.toFixed(1)})` : ''}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#A7C2D8] leading-snug">
+              피크 입질인 해 뜰 녘·질 녘(피딩 타임) 출조 일정과 자외선 차단에 활용하세요
+            </p>
+          </div>
+
+          {/* E. 너울(Swell) · 풍파 · 해류 */}
+          <div className="glass-subcard rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#A7C2D8] flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-[#36D6E8]" /> 너울 · 풍파 · 해류
+              </span>
+              <span className="text-[11px] font-mono text-[#4B9FE8]">
+                {typeof weather.oceanCurrentSpeedMs === 'number'
+                  ? `해류 ${weather.oceanCurrentSpeedMs.toFixed(2)} m/s${
+                      currentDirText ? ` (${currentDirText})` : ''
+                    }`
+                  : '연안 조류 분석'}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 font-mono tabular-nums text-xs text-[#F4FAFF]">
+              <span>
+                너울{' '}
+                <strong className="text-[#36D6E8]">
+                  {typeof weather.swellHeightM === 'number'
+                    ? `${weather.swellHeightM.toFixed(2)}m`
+                    : '--'}
+                </strong>
+                {typeof weather.swellPeriodSec === 'number'
+                  ? ` (${weather.swellPeriodSec.toFixed(1)}s${swellDirText ? `·${swellDirText}` : ''})`
+                  : ''}
+              </span>
+              <span className="text-[11px] text-[#A7C2D8]">
+                풍파{' '}
+                <strong className="text-[#F4FAFF]">
+                  {typeof weather.windWaveHeightM === 'number'
+                    ? `${weather.windWaveHeightM.toFixed(2)}m`
+                    : '--'}
+                </strong>
+              </span>
+            </div>
+            <p className="text-[11px] text-[#A7C2D8] leading-snug">
+              {typeof weather.swellPeriodSec === 'number' && weather.swellPeriodSec >= 8
+                ? '장주기 너울이 유입 중이므로 갯바위·방파제 너울성 월파를 특히 주의하세요'
+                : '풍파와 너울 파고가 구분 표시되어 채비 무게와 포인트 방향 선택에 유리합니다'}
+            </p>
+          </div>
+
+          {/* F. 미세먼지 · 대기질 */}
+          <div className="glass-subcard rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#A7C2D8] flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#36D6E8]" /> 미세먼지 · 대기질
+              </span>
+              <span className={`text-[11px] font-semibold ${levelTextColor(airQualityAssessment.tone)}`}>
+                {weather.airQualityLabel || airQualityAssessment.label}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between gap-2 font-mono tabular-nums text-xs text-[#F4FAFF]">
+              <span>
+                미세 PM10{' '}
+                <strong className="text-[#36D6E8]">
+                  {typeof weather.pm10 === 'number' ? `${weather.pm10}` : '--'}
+                </strong>{' '}
+                <span className="text-[10px] text-[#A7C2D8]">µg/m³</span>
+              </span>
+              <span>
+                초미세 PM2.5{' '}
+                <strong className="text-[#4B9FE8]">
+                  {typeof weather.pm25 === 'number' ? `${weather.pm25}` : '--'}
+                </strong>{' '}
+                <span className="text-[10px] text-[#A7C2D8]">µg/m³</span>
+              </span>
+            </div>
+            <p className="text-[11px] text-[#A7C2D8] leading-snug">{airQualityAssessment.advice}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Weather Forecast Margin of Error & Tolerance Notice */}
+      {weather && (
+        <div
+          data-testid="weather-margin-notice"
+          className="bg-[#061B33]/75 border border-[#4B9FE8]/25 rounded-xl px-4 py-3 text-xs text-[#A7C2D8] space-y-2"
+        >
+          <div className="flex items-center gap-2 font-semibold text-[#F4FAFF]">
+            <Info className="w-4 h-4 text-[#36D6E8] shrink-0" />
+            <span>기상·해황 데이터 오차 범위 안내 (수치예보 격자 보정 기준)</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-[#A7C2D8]">
+            기상 정보에 대한 오류가 있을 수 있습니다. 실시간 기상청(KMA)·동아시아 수치예보 모델은 일정 격자 간격의 평균값을 제공하므로, 도심 열섬·지형 고도·방파제 차폐 등 국지 환경에 따라 실제 현장 체감과 아래와 같은 오차가 발생할 수 있습니다.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-0.5 text-[11px] font-mono tabular-nums">
+            <div className="bg-[#0B2948]/65 border border-[#4B9FE8]/20 rounded-lg px-2.5 py-1.5">
+              <span className="text-[#36D6E8] font-semibold">기온·체감</span>{' '}
+              <span className="text-[#F4FAFF]">±1.5 ~ 2.0°C</span>
+            </div>
+            <div className="bg-[#0B2948]/65 border border-[#4B9FE8]/20 rounded-lg px-2.5 py-1.5">
+              <span className="text-[#36D6E8] font-semibold">풍속·돌풍</span>{' '}
+              <span className="text-[#F4FAFF]">±1.5 ~ 2.5 m/s</span>
+            </div>
+            <div className="bg-[#0B2948]/65 border border-[#4B9FE8]/20 rounded-lg px-2.5 py-1.5">
+              <span className="text-[#36D6E8] font-semibold">파고·너울</span>{' '}
+              <span className="text-[#F4FAFF]">±0.2 ~ 0.3 m</span>
+            </div>
+            <div className="bg-[#0B2948]/65 border border-[#4B9FE8]/20 rounded-lg px-2.5 py-1.5">
+              <span className="text-[#36D6E8] font-semibold">수온·기압</span>{' '}
+              <span className="text-[#F4FAFF]">±1.0°C · ±1.5 hPa</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 12-Hour Interactive Marine Time-Series Visualization */}
       {series.length > 0 && (
         <div className="glass-subcard rounded-xl p-4 sm:p-5 space-y-4">
@@ -705,7 +980,20 @@ export function MarineWeatherVisuals({
                 </span>
                 <span>
                   기온 <strong className="text-amber-300">{selectedPoint.temperatureC.toFixed(1)}°C</strong>
+                  {typeof selectedPoint.apparentTempC === 'number' && (
+                    <span className="text-[#A7C2D8]"> (체감 {selectedPoint.apparentTempC.toFixed(1)}°)</span>
+                  )}
                 </span>
+                {typeof selectedPoint.humidityPct === 'number' && (
+                  <span>
+                    습도 <strong className="text-[#4B9FE8]">{selectedPoint.humidityPct}%</strong>
+                  </span>
+                )}
+                {typeof selectedPoint.pressureHpa === 'number' && (
+                  <span>
+                    기압 <strong className="text-[#36D6E8]">{selectedPoint.pressureHpa.toFixed(0)}hPa</strong>
+                  </span>
+                )}
                 <span>
                   강수{' '}
                   <strong className="text-[#4B9FE8]">

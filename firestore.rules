@@ -38,6 +38,17 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isBootstrappedAdmin() {
+      return isVerified()
+        && request.auth.token.email is string
+        && request.auth.token.email == 'rndsjnd@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin()
+        || (isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
     function isValidRegion(reg) {
       return reg in ['전체', '동해', '서해', '남해', '제주'];
     }
@@ -67,6 +78,18 @@ service cloud.firestore {
         && isValidId(data.uid)
         && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
         && data.updatedAt == request.time;
+    }
+
+    function isValidAdminUser(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'grantedBy', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'email', 'role', 'grantedBy', 'createdAt'])
+        && data.uid == userId
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.role == 'admin'
+        && data.grantedBy == request.auth.uid
+        && isValidId(data.grantedBy)
+        && data.createdAt == request.time;
     }
 
     function isValidOpenRoom(data, roomId) {
@@ -223,6 +246,15 @@ service cloud.firestore {
     // Collections
     // =========================================================================
 
+    // Administrator accounts (bootstrapped owner + admin-granted UIDs)
+    match /admins/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin() && resource.data.role == 'admin';
+      allow create: if isAdmin() && isValidId(userId) && isValidAdminUser(incoming(), userId);
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(userId) && existing().email != 'rndsjnd@gmail.com';
+    }
+
     // Public angler directory (No PII; supports custom nickname)
     match /public_profiles/{userId} {
       allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || resource == null || existing().isDiscoverable == true);
@@ -235,9 +267,9 @@ service cloud.firestore {
         && incoming().uid == existing().uid;
     }
 
-    // Isolated PII collection (Owner only)
+    // Isolated PII collection (Owner or verified Admin)
     match /user_secrets/{userId} {
-      allow get: if isOwner(userId) && isValidId(userId);
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(userId);
       allow create: if isVerified() && isOwner(userId) && isValidId(userId)
         && isValidUserSecret(incoming(), userId);
       allow update: if isVerified() && isOwner(userId) && isValidId(userId)
@@ -252,6 +284,7 @@ service cloud.firestore {
         resource == null
         || existing().isPublic == true
         || existing().createdBy == request.auth.uid
+        || isAdmin()
         || exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
       );
       allow list: if isSignedIn() && (
@@ -272,8 +305,8 @@ service cloud.firestore {
         && incoming().creatorName == existing().creatorName
         && incoming().createdAt == existing().createdAt
         && (
-          // Tier 1: Room creator edits room metadata
-          (existing().createdBy == request.auth.uid
+          // Tier 1: Room creator or admin edits room metadata
+          ((existing().createdBy == request.auth.uid || isAdmin())
             && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'region', 'description', 'updatedAt']))
           ||
           // Tier 2: Joined member updates room latest activity timestamp/status
@@ -281,9 +314,9 @@ service cloud.firestore {
             && incoming().diff(existing()).affectedKeys().hasOnly(['lastMessageText', 'lastMessageAt', 'updatedAt'])
             && incoming().lastMessageAt == request.time)
         );
-      // Host-only room deletion
+      // Host or Admin room deletion
       allow delete: if isSignedIn() && isValidId(roomId)
-        && existing().createdBy == request.auth.uid;
+        && (existing().createdBy == request.auth.uid || isAdmin());
 
       // Room Members (Master Gate + Invite Code Gate for Private Rooms)
       match /members/{memberId} {
@@ -313,10 +346,11 @@ service cloud.firestore {
           && (
             memberId == request.auth.uid
             || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+            || isAdmin()
           );
       }
 
-      // Room Messages (Strictly limited to joined members, plus room host for deletion cleanup)
+      // Room Messages (Strictly limited to joined members, plus room host/admin for deletion cleanup)
       match /messages/{messageId} {
         allow get: if isSignedIn() && isValidId(roomId) && isValidId(messageId)
           && (resource == null || (
@@ -324,12 +358,14 @@ service cloud.firestore {
             && (
               exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
               || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+              || isAdmin()
             )
           ));
         allow list: if isSignedIn() && resource.data.roomId == roomId
           && (
             exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
             || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+            || isAdmin()
           );
         allow create: if isVerified() && isValidId(roomId) && isValidId(messageId)
           && isValidOpenRoomMessage(incoming(), roomId)
@@ -342,6 +378,7 @@ service cloud.firestore {
           && (
             existing().senderId == request.auth.uid
             || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+            || isAdmin()
           );
       }
     }
@@ -356,7 +393,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/open_rooms/$(incoming().roomId)).data.createdBy == request.auth.uid
         && getAfter(/databases/$(database)/documents/open_rooms/$(incoming().roomId)).data.inviteCode == inviteCode;
       allow delete: if isSignedIn() && isValidId(inviteCode)
-        && existing().createdBy == request.auth.uid;
+        && (existing().createdBy == request.auth.uid || isAdmin());
     }
 
     // User-owned Room Join Links (public & private joined rooms)

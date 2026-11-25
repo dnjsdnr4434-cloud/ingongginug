@@ -1,10 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#061B33" />
   <title>일타만선 (一打滿船) - Deep Blue 스마트 해양·낚시 관측 플랫폼</title>
-  <meta name="description" content="실시간 KST 해양 기상·물때, 추천 낚시 시간·장소(공원 포함), AI 어종 판별 및 오픈채팅을 제공하는 Deep Blue 해양 관측 플랫폼" />
+  <meta name="description" content="실시간 대한민국 표준시(KST) 해양 기상·물때, 추천 출조 시간·1시간 이내 포인트/공원, AI 어종 판별·식용·레시피 및 오픈채팅 플랫폼" />
+  <meta property="og:title" content="일타만선 (一打滿船) - Deep Blue 스마트 해양·낚시 관측 플랫폼" />
+  <meta property="og:description" content="실시간 해양 기상·물때·추천 출조 시간, AI 어종 판별 및 안전 가이드" />
+  <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Noto+Sans+KR:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
@@ -13,462 +17,1136 @@
     :root {
       --bg-deep: #061B33;
       --bg-ocean: #0B2948;
-      --bg-card: rgba(16, 54, 83, 0.72);
-      --bg-subcard: rgba(11, 41, 72, 0.74);
+      --bg-card: #103653;
       --cyan: #36D6E8;
       --aqua: #4B9FE8;
       --text-main: #F4FAFF;
       --text-sub: #A7C2D8;
-      --border-soft: rgba(75, 159, 232, 0.28);
-      --border-glow: rgba(54, 214, 232, 0.48);
+      --border-soft: rgba(75, 159, 232, 0.25);
+      --border-glow: rgba(54, 214, 232, 0.46);
     }
-    * { box-sizing: border-box; }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
     html, body {
-      margin: 0; padding: 0; min-height: 100%;
-      background: var(--bg-deep); color: var(--text-main);
-      font-family: 'Plus Jakarta Sans', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background-color: var(--bg-deep);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
-    .font-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-    .deep-atmosphere {
-      min-height: 100vh; position: relative;
-      background:
-        radial-gradient(circle at 14% 6%, rgba(54, 214, 232, 0.14), transparent 44%),
-        radial-gradient(circle at 86% 18%, rgba(75, 159, 232, 0.16), transparent 46%),
-        radial-gradient(circle at 50% 88%, rgba(16, 54, 83, 0.45), transparent 55%),
-        linear-gradient(180deg, #061B33 0%, #092442 48%, #05162B 100%);
+
+    ::selection {
+      background: var(--cyan);
+      color: #041529;
     }
-    .ocean-grid-overlay {
-      position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.24;
+
+    .font-mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Deep Ocean Atmosphere & Subtle Underwater Light Rays */
+    .deep-blue-atmosphere {
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background-color: #061B33;
       background-image:
-        linear-gradient(rgba(54, 214, 232, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(75, 159, 232, 0.08) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: linear-gradient(180deg, rgba(0,0,0,0.65), transparent 78%);
+        radial-gradient(ellipse 85% 48% at 18% -8%, rgba(54, 214, 232, 0.18), transparent 60%),
+        radial-gradient(ellipse 70% 45% at 86% 8%, rgba(75, 159, 232, 0.16), transparent 58%),
+        radial-gradient(ellipse 65% 50% at 50% 52%, rgba(16, 54, 83, 0.42), transparent 65%),
+        linear-gradient(180deg, #061B33 0%, #092442 52%, #05162B 100%);
     }
+
+    .ocean-caustics {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .ocean-caustics::before {
+      content: "";
+      position: absolute;
+      inset: -20% -10% 30%;
+      background:
+        conic-gradient(from 165deg at 28% 0%, transparent 0deg, rgba(54, 214, 232, 0.07) 14deg, transparent 30deg),
+        conic-gradient(from 172deg at 72% 0%, transparent 0deg, rgba(75, 159, 232, 0.06) 16deg, transparent 34deg);
+      filter: blur(22px);
+    }
+
+    .ocean-grid-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.18;
+      background-image:
+        linear-gradient(rgba(54, 214, 232, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(75, 159, 232, 0.09) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 72%);
+      -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 72%);
+    }
+
+    /* Frosted Glassmorphism Surfaces */
     .glass-card {
-      background: linear-gradient(145deg, rgba(24, 72, 108, 0.46) 0%, rgba(16, 54, 83, 0.36) 55%, rgba(11, 41, 72, 0.44) 100%);
-      border: 1px solid rgba(125, 206, 255, 0.26);
-      border-top-color: rgba(244, 250, 255, 0.28);
-      backdrop-filter: blur(22px) saturate(155%); -webkit-backdrop-filter: blur(22px) saturate(155%);
-      border-radius: 18px;
-      box-shadow: 0 18px 42px -18px rgba(2, 12, 26, 0.7), inset 0 1px 1px rgba(244, 250, 255, 0.18), inset 0 -1px 0 rgba(54, 214, 232, 0.08);
+      background: linear-gradient(145deg, rgba(24, 72, 108, 0.46) 0%, rgba(16, 54, 83, 0.36) 55%, rgba(11, 41, 72, 0.46) 100%);
+      backdrop-filter: blur(22px) saturate(155%);
+      -webkit-backdrop-filter: blur(22px) saturate(155%);
+      border: 1px solid rgba(125, 206, 255, 0.25);
+      border-top-color: rgba(244, 250, 255, 0.26);
+      border-radius: 20px;
+      box-shadow:
+        0 18px 42px -16px rgba(2, 12, 26, 0.68),
+        inset 0 1px 1px rgba(244, 250, 255, 0.16),
+        inset 0 -1px 0 rgba(54, 214, 232, 0.08);
     }
+
     .glass-subcard {
-      background: linear-gradient(160deg, rgba(16, 54, 83, 0.38) 0%, rgba(6, 27, 51, 0.42) 100%);
-      backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
-      border: 1px solid rgba(75, 159, 232, 0.26);
-      border-top-color: rgba(244, 250, 255, 0.16);
-      box-shadow: inset 0 1px 0 rgba(244, 250, 255, 0.1);
+      background: linear-gradient(160deg, rgba(16, 54, 83, 0.44) 0%, rgba(6, 27, 51, 0.56) 100%);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border: 1px solid rgba(75, 159, 232, 0.24);
+      border-top-color: rgba(244, 250, 255, 0.15);
       border-radius: 14px;
+      box-shadow: inset 0 1px 0 rgba(244, 250, 255, 0.08);
     }
+
+    /* Buttons */
     .btn-cyan {
       background: linear-gradient(135deg, #36D6E8 0%, #4B9FE8 100%);
-      color: #041529; font-weight: 800; border: none; cursor: pointer;
-      border-radius: 12px; padding: 10px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      box-shadow: 0 8px 22px -6px rgba(54, 214, 232, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35); transition: transform .15s, filter .15s;
+      color: #041529;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      padding: 10px 16px;
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 13px;
+      font-family: inherit;
+      white-space: nowrap;
+      box-shadow: 0 8px 22px -6px rgba(54, 214, 232, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .btn-cyan:hover { filter: brightness(1.06); transform: translateY(-1px); }
-    .btn-cyan:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+    .btn-cyan:hover:not(:disabled) {
+      filter: brightness(1.07);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 26px -6px rgba(54, 214, 232, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    .btn-cyan:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .btn-aqua {
-      background: linear-gradient(135deg, rgba(24, 72, 108, 0.58), rgba(11, 41, 72, 0.64));
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      color: var(--text-main); border: 1px solid rgba(125, 206, 255, 0.26); cursor: pointer;
-      border-radius: 12px; padding: 9px 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      font-weight: 600; transition: border-color .15s, background .15s;
-      box-shadow: inset 0 1px 0 rgba(244, 250, 255, 0.14);
+      background: linear-gradient(135deg, rgba(22, 86, 134, 0.62) 0%, rgba(16, 54, 83, 0.72) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--text-main);
+      border: 1px solid rgba(75, 159, 232, 0.34);
+      border-top-color: rgba(244, 250, 255, 0.18);
+      cursor: pointer;
+      border-radius: 12px;
+      padding: 9px 14px;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
-    .btn-aqua:hover { border-color: var(--cyan); }
+
+    .btn-aqua:hover:not(:disabled) {
+      border-color: var(--cyan);
+      background: linear-gradient(135deg, rgba(30, 108, 166, 0.78) 0%, rgba(20, 68, 106, 0.85) 100%);
+    }
+
     .btn-danger {
-      background: rgba(136, 19, 55, 0.72); color: #fecdd3;
-      border: 1px solid rgba(251, 113, 133, 0.45); border-radius: 10px;
-      padding: 7px 12px; cursor: pointer; font-weight: 700;
+      background: rgba(136, 19, 55, 0.72);
+      color: #fecdd3;
+      border: 1px solid rgba(251, 113, 133, 0.42);
+      border-radius: 10px;
+      padding: 8px 12px;
+      min-height: 38px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      white-space: nowrap;
+      transition: background 0.15s ease;
     }
+
+    .btn-danger:hover {
+      background: rgba(159, 18, 57, 0.88);
+    }
+
+    /* Sticky Header & Sub-bar */
     .app-header {
-      position: sticky; top: 0; z-index: 40;
-      background: rgba(6, 27, 51, 0.65); backdrop-filter: blur(22px) saturate(150%); -webkit-backdrop-filter: blur(22px) saturate(150%);
-      border-bottom: 1px solid rgba(125, 206, 255, 0.22);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(6, 27, 51, 0.72);
+      backdrop-filter: blur(22px) saturate(155%);
+      -webkit-backdrop-filter: blur(22px) saturate(155%);
+      border-bottom: 1px solid rgba(75, 159, 232, 0.24);
       box-shadow: 0 8px 32px rgba(2, 12, 26, 0.45), inset 0 -1px 0 rgba(244, 250, 255, 0.08);
     }
-    .container { max-width: 1220px; margin: 0 auto; padding: 0 16px; position: relative; z-index: 1; }
-    .header-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; }
-    .brand { display: flex; align-items: center; gap: 11px; }
+
+    .sub-telemetry-bar {
+      position: relative;
+      z-index: 30;
+      background: rgba(11, 41, 72, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(75, 159, 232, 0.2);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+      flex-shrink: 0;
+    }
+
     .brand-icon {
-      width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
-      background: linear-gradient(135deg, rgba(54, 214, 232, 0.25), rgba(75, 159, 232, 0.25));
-      border: 1px solid var(--border-glow); color: var(--cyan);
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #36D6E8 0%, #4B9FE8 100%);
+      color: #041529;
+      border: 1px solid rgba(244, 250, 255, 0.35);
+      box-shadow: 0 8px 20px rgba(54, 214, 232, 0.26);
+      flex-shrink: 0;
     }
-    .desktop-nav { display: flex; gap: 6px; padding: 0 0 10px; overflow-x: auto; }
+
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 14px;
+      background: rgba(11, 41, 72, 0.52);
+      border: 1px solid rgba(75, 159, 232, 0.26);
+      box-shadow: inset 0 1px 0 rgba(244, 250, 255, 0.1);
+      overflow-x: auto;
+    }
+
     .nav-btn {
-      background: transparent; border: 1px solid transparent; color: var(--text-sub);
-      padding: 8px 14px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer;
-      white-space: nowrap; transition: all .15s;
-    }
-    .nav-btn.active {
-      background: linear-gradient(135deg, rgba(54, 214, 232, 0.2), rgba(75, 159, 232, 0.24));
-      border-color: var(--border-glow); color: var(--cyan);
-    }
-    .mobile-bottom-nav {
-      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      background: rgba(6, 27, 51, 0.94); backdrop-filter: blur(18px);
-      border-top: 1px solid var(--border-soft); padding: 6px 6px 8px;
-      grid-template-columns: repeat(6, 1fr); gap: 3px;
-    }
-    .mobile-nav-btn {
-      background: transparent; border: none; color: var(--text-sub); padding: 6px 2px; border-radius: 10px;
-      font-size: 11px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
-    }
-    .mobile-nav-btn.active { color: var(--cyan); background: rgba(54, 214, 232, 0.14); }
-    main { padding: 20px 0 96px; }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; animation: fadeIn .22s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
-      font-size: 11px; font-weight: 700; border: 1px solid var(--border-soft);
-      background: rgba(11, 41, 72, 0.85); color: var(--cyan);
-    }
-    .badge-warn { color: #fcd34d; border-color: rgba(251, 191, 36, 0.4); background: rgba(120, 53, 15, 0.45); }
-    .badge-danger { color: #fda4af; border-color: rgba(251, 113, 133, 0.45); background: rgba(136, 19, 55, 0.45); }
-    .badge-park { color: #67e8f9; border-color: rgba(54, 214, 232, 0.45); background: rgba(16, 54, 83, 0.85); }
-    input, textarea, select {
-      width: 100%; background: rgba(6, 27, 51, 0.9); color: var(--text-main);
-      border: 1px solid rgba(75, 159, 232, 0.34); border-radius: 11px; padding: 10px 12px; font-size: 13px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-sub);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-family: inherit;
+      transition: all 0.15s ease;
     }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(54, 214, 232, 0.2); }
-    .progress-track { height: 8px; border-radius: 999px; background: rgba(6, 27, 51, 0.85); overflow: hidden; border: 1px solid rgba(75, 159, 232, 0.2); }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, #36D6E8, #4B9FE8); border-radius: 999px; transition: width .35s; }
-    #leaflet-map { width: 100%; height: 420px; border-radius: 16px; border: 1px solid var(--border-soft); background: #071E38; z-index: 1; }
-    .chat-layout { display: grid; grid-template-columns: 310px 1fr; gap: 16px; }
-    .chat-messages { height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: rgba(6, 27, 51, 0.65); border-radius: 14px; border: 1px solid rgba(75, 159, 232, 0.2); }
-    .msg-bubble { max-width: 82%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
-    .msg-mine { align-self: flex-end; background: linear-gradient(135deg, #36D6E8, #4B9FE8); color: #041529; font-weight: 600; }
-    .msg-other { align-self: flex-start; background: rgba(16, 54, 83, 0.9); border: 1px solid var(--border-soft); color: var(--text-main); }
+
+    .nav-btn:hover {
+      color: var(--text-main);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(135deg, #36D6E8 0%, #4B9FE8 100%);
+      color: #041529;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(54, 214, 232, 0.35);
+    }
+
+    /* Mobile Bottom Navigation */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(6, 27, 51, 0.86);
+      backdrop-filter: blur(22px) saturate(155%);
+      -webkit-backdrop-filter: blur(22px) saturate(155%);
+      border-top: 1px solid rgba(125, 206, 255, 0.24);
+      box-shadow: 0 -8px 28px rgba(2, 12, 26, 0.5), inset 0 1px 0 rgba(244, 250, 255, 0.1);
+      padding: 4px 4px max(6px, env(safe-area-inset-bottom));
+      grid-template-columns: repeat(6, 1fr);
+      gap: 2px;
+    }
+
+    .mobile-nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      min-height: 48px;
+      padding: 4px 2px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+      font-family: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+
+    .mobile-nav-btn.active {
+      color: var(--cyan);
+      background: rgba(54, 214, 232, 0.12);
+      font-weight: 700;
+    }
+
+    /* Main Content & Tabs */
+    main {
+      flex: 1;
+      padding: 20px 0 92px;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.22s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stack-lg {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    /* Inline Status Badges (clean, restrained) */
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid rgba(54, 214, 232, 0.32);
+      background: rgba(6, 27, 51, 0.72);
+      color: var(--cyan);
+    }
+
+    .status-tag.warn {
+      color: #fcd34d;
+      border-color: rgba(251, 191, 36, 0.38);
+      background: rgba(120, 53, 15, 0.42);
+    }
+
+    .status-tag.danger {
+      color: #fda4af;
+      border-color: rgba(251, 113, 133, 0.42);
+      background: rgba(136, 19, 55, 0.46);
+    }
+
+    .status-tag.safe {
+      color: #6ee7b7;
+      border-color: rgba(52, 211, 153, 0.38);
+      background: rgba(6, 78, 59, 0.45);
+    }
+
+    .status-tag.park {
+      color: #7dd3fc;
+      border-color: rgba(75, 159, 232, 0.4);
+      background: rgba(11, 41, 72, 0.78);
+    }
+
+    /* Form Controls */
+    input, textarea, select {
+      width: 100%;
+      background: rgba(6, 27, 51, 0.88);
+      color: var(--text-main);
+      border: 1px solid rgba(75, 159, 232, 0.3);
+      border-radius: 12px;
+      padding: 10px 13px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: rgba(167, 194, 216, 0.55);
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 2px rgba(54, 214, 232, 0.22);
+    }
+
+    /* Hero Observatory Banner */
+    .hero-observatory {
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+    }
+
+    .hero-wave-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Progress & Gauge Bars */
+    .gauge-track {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(6, 27, 51, 0.88);
+      overflow: hidden;
+      border: 1px solid rgba(75, 159, 232, 0.24);
+      position: relative;
+    }
+
+    .gauge-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #36D6E8 0%, #4B9FE8 100%);
+      transition: width 0.35s ease;
+    }
+
+    /* Map */
+    #leaflet-map {
+      width: 100%;
+      height: 440px;
+      border-radius: 16px;
+      border: 1px solid rgba(75, 159, 232, 0.3);
+      background: #071E38;
+      z-index: 1;
+    }
+
+    /* Chart Tab Switcher */
+    .chart-tabs {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 12px;
+      background: rgba(6, 27, 51, 0.85);
+      border: 1px solid rgba(75, 159, 232, 0.24);
+    }
+
+    .chart-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      padding: 6px 11px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .chart-tab-btn.active {
+      background: linear-gradient(135deg, #36D6E8 0%, #4B9FE8 100%);
+      color: #041529;
+      font-weight: 700;
+    }
+
+    .hour-chip {
+      background: rgba(6, 27, 51, 0.82);
+      border: 1px solid rgba(75, 159, 232, 0.22);
+      color: var(--text-sub);
+      border-radius: 8px;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .hour-chip.active {
+      background: linear-gradient(135deg, #36D6E8 0%, #4B9FE8 100%);
+      border-color: var(--cyan);
+      color: #041529;
+      font-weight: 700;
+    }
+
+    /* Messenger Layout */
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .chat-messages {
+      height: 360px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      background: rgba(6, 27, 51, 0.72);
+      border-radius: 14px;
+      border: 1px solid rgba(75, 159, 232, 0.22);
+    }
+
+    .msg-bubble {
+      max-width: 82%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .msg-mine {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #36D6E8 0%, #4B9FE8 100%);
+      color: #041529;
+      font-weight: 600;
+    }
+
+    .msg-other {
+      align-self: flex-start;
+      background: rgba(16, 54, 83, 0.86);
+      border: 1px solid rgba(75, 159, 232, 0.28);
+      color: var(--text-main);
+    }
+
+    /* Modal & Toast */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(4, 16, 31, 0.78);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
     .toast-banner {
-      position: fixed; bottom: 82px; right: 16px; z-index: 80; padding: 11px 16px; border-radius: 12px;
-      background: rgba(16, 54, 83, 0.96); border: 1px solid var(--cyan); color: var(--text-main);
-      font-size: 13px; font-weight: 600; box-shadow: 0 12px 30px rgba(0,0,0,0.45); display: none;
+      position: fixed;
+      bottom: 84px;
+      right: 16px;
+      z-index: 95;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(16, 54, 83, 0.96);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--cyan);
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 14px 32px rgba(2, 12, 26, 0.55);
+      display: none;
+      max-width: min(92vw, 420px);
     }
+
     .muted { color: var(--text-sub); }
     .text-cyan { color: var(--cyan); }
     .text-aqua { color: var(--aqua); }
-    @media (max-width: 900px) {
-      .grid-3, .grid-4, .chat-layout { grid-template-columns: 1fr; }
-      .grid-2 { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 760px) {
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #061B33; }
+    ::-webkit-scrollbar-thumb { background: rgba(75, 159, 232, 0.35); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(54, 214, 232, 0.55); }
+
+    @media (max-width: 980px) {
       .desktop-nav { display: none; }
       .mobile-bottom-nav { display: grid; }
+      .grid-3, .grid-4, .chat-layout { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .hide-mobile { display: none !important; }
+    }
+
+    @media (min-width: 981px) {
+      main { padding-bottom: 48px; }
     }
   </style>
 </head>
-<body class="deep-atmosphere">
-  <div class="ocean-grid-overlay"></div>
+<body class="deep-blue-atmosphere">
+  <div class="ocean-caustics" aria-hidden="true"></div>
+  <div class="ocean-grid-overlay" aria-hidden="true"></div>
+
+  <!-- STICKY DEEP BLUE HEADER -->
   <header class="app-header">
     <div class="container">
-      <div class="header-top">
-        <div class="brand">
+      <div class="header-inner">
+        <button type="button" class="brand" id="btn-brand-home" aria-label="일타만선 홈으로 이동">
           <div class="brand-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="5" r="3"></circle>
               <line x1="12" y1="22" x2="12" y2="8"></line>
               <path d="M5 12H2a10 10 0 0 0 20 0h-3"></path>
             </svg>
           </div>
           <div>
-            <div style="font-weight:800;font-size:18px;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px;">
+            <div style="font-weight:800;font-size:17px;letter-spacing:-0.02em;display:flex;align-items:center;gap:6px;">
               <span>일타만선</span>
-              <span class="badge">DEEP BLUE MARINE</span>
+              <span class="hide-mobile text-cyan" style="font-size:11px;font-weight:600;">一打滿船</span>
             </div>
-            <div class="muted" style="font-size:11px;">대한민국 KST 실시간 해양 기상 · 물때 · AI 어종 판별 · 낚시 커뮤니티</div>
+            <div class="muted hide-mobile" style="font-size:11px;">Deep Blue 해양 관측 · <span id="header-kst-short" class="font-mono">--:--</span></div>
           </div>
-        </div>
+        </button>
 
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
-          <div id="kst-clock-pill" class="badge font-mono">KST 동기화 중...</div>
-          <div id="active-location-pill" class="badge" style="color:#F4FAFF;">위치 탐색 중...</div>
-          <button type="button" id="btn-gps-sync" class="btn-cyan" style="padding:7px 12px;font-size:12px;">내 기기 위치로</button>
-          <button type="button" id="btn-live-track" class="btn-aqua" style="padding:7px 11px;font-size:12px;">실시간 추적 OFF</button>
+        <nav class="desktop-nav" aria-label="주 메뉴">
+          <button type="button" class="nav-btn active" data-tab="home">홈·추천지수</button>
+          <button type="button" class="nav-btn" data-tab="identify">AI 판별·검색</button>
+          <button type="button" class="nav-btn" data-tab="spots">지도·포인트</button>
+          <button type="button" class="nav-btn" data-tab="chat">메신저</button>
+          <button type="button" class="nav-btn" data-tab="guide">보호·가이드</button>
+          <button type="button" class="nav-btn" data-tab="diary">기록장 (<span id="nav-diary-count">0</span>)</button>
+        </nav>
+
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <button type="button" id="btn-user-nick" class="btn-aqua" style="padding:7px 12px;min-height:38px;font-size:12px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <span id="header-nick-text" style="max-width:96px;overflow:hidden;text-overflow:ellipsis;">닉네임</span>
+          </button>
+          <button type="button" id="btn-google-login" class="btn-cyan" style="padding:7px 12px;min-height:38px;font-size:12px;display:none;">Google 로그인</button>
         </div>
       </div>
-
-      <nav class="desktop-nav" aria-label="주 메뉴">
-        <button type="button" class="nav-btn active" data-tab="home">홈·추천지수</button>
-        <button type="button" class="nav-btn" data-tab="identify">AI 어종판별</button>
-        <button type="button" class="nav-btn" data-tab="spots">지도·포인트</button>
-        <button type="button" class="nav-btn" data-tab="guide">낚시 가이드</button>
-        <button type="button" class="nav-btn" data-tab="diary">조과 일지</button>
-        <button type="button" class="nav-btn" data-tab="chat">오픈채팅·DM</button>
-      </nav>
     </div>
   </header>
 
+  <!-- LIVE KST CLOCK & DEVICE / MAP LOCATION TELEMETRY BAR -->
+  <div class="sub-telemetry-bar">
+    <div class="container" style="padding-top:9px;padding-bottom:9px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:12px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+        <span class="text-cyan" style="font-weight:700;display:inline-flex;align-items:center;gap:5px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          한국 표준시:
+        </span>
+        <span id="kst-clock-full" class="font-mono" style="font-weight:700;">동기화 중...</span>
+        <span id="kst-window-label" class="muted hide-mobile">· 시간대 계산 중</span>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;">
+        <span style="display:inline-flex;align-items:center;gap:5px;" class="muted">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#36D6E8" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="telemetry-loc-prefix">현재 기준 위치:</span>
+          <strong id="active-location-pill" style="color:var(--text-main);">탐색 중...</strong>
+          <span id="active-region-pill" class="text-aqua"></span>
+        </span>
+        <button type="button" id="btn-live-track" class="btn-aqua" style="min-height:30px;padding:4px 10px;font-size:11px;border-radius:8px;">실시간 추적 OFF</button>
+        <button type="button" id="btn-gps-sync" class="btn-aqua" style="min-height:30px;padding:4px 10px;font-size:11px;border-radius:8px;color:var(--cyan);">내 기기 위치로</button>
+        <button type="button" class="btn-cyan" data-jump-tab="spots" style="min-height:30px;padding:4px 11px;font-size:11px;border-radius:8px;">위성 지도 열기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
   <main class="container">
-    <!-- TAB 1: HOME -->
+    <!-- ==================== TAB 1: HOME ==================== -->
     <section id="tab-home" class="tab-panel active">
-      <div class="grid-2" style="margin-bottom:16px;">
-        <div class="glass-card" style="padding:22px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;">
-          <div>
-            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;">
-              <span id="home-location-badge" class="badge">현재 기준 위치</span>
-              <span id="home-region-badge" class="badge">해역 분석</span>
+      <div class="stack-lg">
+        <!-- HERO OBSERVATORY + STAR RATING + REGIONAL TIDE + RECOMMENDED WINDOWS -->
+        <div class="glass-card hero-observatory">
+          <svg class="hero-wave-bg" preserveAspectRatio="none" viewBox="0 0 1200 320" aria-hidden="true">
+            <defs>
+              <linearGradient id="deepHeroGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#36D6E8" stop-opacity="0.16" />
+                <stop offset="55%" stop-color="#4B9FE8" stop-opacity="0.08" />
+                <stop offset="100%" stop-color="#061B33" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="heroWaveStroke" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#36D6E8" stop-opacity="0.45" />
+                <stop offset="100%" stop-color="#4B9FE8" stop-opacity="0.12" />
+              </linearGradient>
+            </defs>
+            <rect width="1200" height="320" fill="url(#deepHeroGrad)" />
+            <path d="M0,255 C240,210 460,295 720,248 C960,204 1090,262 1200,234 L1200,320 L0,320 Z" fill="rgba(54,214,232,0.08)" />
+            <path d="M0,275 C280,305 520,235 800,278 C990,304 1110,250 1200,268" fill="none" stroke="url(#heroWaveStroke)" stroke-width="1.6" />
+          </svg>
+
+          <div class="hero-content" style="display:flex;flex-direction:column;gap:18px;">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;">
+              <div style="min-width:0;flex:1 1 340px;">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;margin-bottom:6px;">
+                  <span id="home-location-badge" class="text-cyan" style="font-weight:700;">현재 기기 위치 실시간 관측</span>
+                  <span class="muted">·</span>
+                  <span id="home-location-text" style="font-weight:600;">위치 확인 중...</span>
+                  <span class="muted">·</span>
+                  <span id="home-model-meta" class="text-aqua font-mono" style="font-size:11px;">KMA 보정 KST</span>
+                </div>
+                <h1 id="home-hero-title" style="margin:0;font-size:clamp(20px,3vw,26px);font-weight:800;letter-spacing:-0.02em;line-height:1.25;">
+                  해양·날씨·물때 관측 브리핑
+                </h1>
+                <p id="home-location-detail" class="muted" style="margin:6px 0 0;font-size:13px;line-height:1.55;">
+                  대한민국 기상청(KMA) 정밀 기상과 지역 물때·조류 주기를 결합해 최적의 출조 시간을 안내합니다.
+                </p>
+              </div>
+
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+                <div class="glass-subcard" style="padding:10px 16px;display:flex;align-items:center;gap:12px;">
+                  <div id="star-rating-row" style="display:inline-flex;gap:3px;" aria-label="출조 추천 별점"></div>
+                  <div style="text-align:right;">
+                    <span id="rating-stars-val" class="font-mono text-cyan" style="font-size:20px;font-weight:800;">--</span>
+                    <span class="muted font-mono" style="font-size:11px;"> / 5.0</span>
+                    <div id="rating-score-sub" class="muted font-mono" style="font-size:10px;">--점</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-cyan" data-jump-tab="spots">지도에서 지역 변경</button>
+                <button type="button" id="btn-home-refresh" class="btn-aqua">기상 갱신</button>
+              </div>
             </div>
-            <h1 id="home-hero-title" style="margin:0 0 8px;font-size:24px;line-height:1.3;">선택 지역의 해양·날씨·물때 분석</h1>
-            <p id="home-location-detail" class="muted" style="margin:0;font-size:13px;line-height:1.6;">기상청(KMA) 정밀 모델과 지역별 물때를 실시간으로 결합하고 있습니다.</p>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            <button type="button" class="btn-cyan" data-jump-tab="spots">지도에서 다른 지역 선택하기</button>
-            <button type="button" id="btn-home-refresh" class="btn-aqua">기상·추천 새로고침</button>
+
+            <!-- 3 Summary Telemetry Readouts -->
+            <div class="grid-3">
+              <div class="glass-subcard" style="padding:14px;display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(16,54,83,0.9);border:1px solid rgba(54,214,232,0.3);display:grid;place-items:center;color:var(--cyan);flex-shrink:0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9a4 4 0 0 0-2 7.5"/><path d="M12 3v2"/><path d="m6.6 18.4-1.4 1.4"/><path d="M20 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+                </div>
+                <div style="min-width:0;">
+                  <div class="muted" style="font-size:11px;">지역 날씨 · 기온</div>
+                  <div id="hero-weather-summary" class="font-mono" style="font-size:16px;font-weight:800;margin-top:2px;">--</div>
+                </div>
+              </div>
+
+              <div class="glass-subcard" style="padding:14px;display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(16,54,83,0.9);border:1px solid rgba(75,159,232,0.3);display:grid;place-items:center;color:var(--aqua);flex-shrink:0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
+                </div>
+                <div style="min-width:0;">
+                  <div class="muted" style="font-size:11px;">풍향 · 풍속</div>
+                  <div id="hero-wind-summary" class="font-mono" style="font-size:16px;font-weight:800;margin-top:2px;">--</div>
+                </div>
+              </div>
+
+              <div class="glass-subcard" style="padding:14px;display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(16,54,83,0.9);border:1px solid rgba(54,214,232,0.3);display:grid;place-items:center;color:var(--cyan);flex-shrink:0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>
+                </div>
+                <div style="min-width:0;">
+                  <div id="hero-wave-ref-label" class="muted" style="font-size:11px;">연안 파고</div>
+                  <div id="hero-wave-summary" class="font-mono" style="font-size:16px;font-weight:800;margin-top:2px;">--</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rating Verdict Banner -->
+            <div id="rating-verdict-banner" class="glass-subcard" style="padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:13px;">
+              <strong id="rating-headline" class="text-cyan">기상 분석 중...</strong>
+              <span id="rating-summary-text" class="muted">해양 데이터를 수신하고 있습니다.</span>
+            </div>
+
+            <!-- Tide Strip + Top 3 Recommended Windows -->
+            <div class="glass-subcard" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(75,159,232,0.2);padding-bottom:10px;">
+                <div style="font-size:14px;font-weight:700;color:var(--cyan);display:flex;align-items:center;gap:6px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span id="tide-windows-title">선택 해역 기상·물때 기반 추천 낚시 시간</span>
+                </div>
+                <div class="font-mono" style="font-size:12px;">
+                  <strong id="tide-multae-label" style="color:var(--text-main);">--물</strong> ·
+                  <span id="tide-phase-label" class="text-cyan">--</span>
+                  <span class="muted"> | </span>
+                  <span id="tide-events-inline" class="muted">만조/간조 계산 중</span>
+                </div>
+              </div>
+
+              <div class="gauge-track"><div id="tide-progress-bar" class="gauge-fill" style="width:50%;"></div></div>
+              <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:11px;" class="muted">
+                <span id="tide-next-label">--</span>
+                <span id="tide-tip-pill" class="text-cyan">--</span>
+              </div>
+
+              <div id="recommended-windows-grid" class="grid-3"></div>
+            </div>
+
+            <!-- Beginner Tip Line -->
+            <div class="glass-subcard" style="padding:11px 15px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:12px;">
+              <span id="beginner-spot-advice" class="text-cyan" style="font-weight:600;">초보자 출조 포인트 조언 계산 중...</span>
+              <span id="beginner-rig-advice" class="muted">--</span>
+            </div>
+            <p class="muted" style="margin:0;font-size:11px;line-height:1.5;padding:0 2px;">
+              ※ 기상 정보에 대한 오류가 있을 수 있습니다. 수치예보 격자 및 국지 해안 지형 특성에 따라 실제 현장 기상과 다소 차이가 날 수 있습니다.
+            </p>
           </div>
         </div>
 
-        <!-- Rating + Tide Summary Card -->
-        <div class="glass-card" style="padding:22px;">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
+        <!-- BEGINNER QUICK SHORTCUTS (Clean 4-Column Row) -->
+        <div class="grid-4">
+          <button type="button" class="btn-cyan" data-jump-tab="identify" style="justify-content:flex-start;padding:13px 15px;min-height:58px;text-align:left;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            <span><span style="display:block;font-size:13px;font-weight:800;">잡은 물고기 판별</span><span style="display:block;font-size:11px;opacity:0.85;font-weight:500;">식용 여부·독성·요리법</span></span>
+          </button>
+          <button type="button" class="btn-aqua" data-jump-tab="spots" style="justify-content:flex-start;padding:13px 15px;min-height:58px;text-align:left;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#36D6E8" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span><span style="display:block;font-size:13px;font-weight:700;">지도 지역 선택</span><span class="muted" style="display:block;font-size:11px;font-weight:400;">선택 지역 날씨·물때 동기화</span></span>
+          </button>
+          <button type="button" class="btn-aqua" data-jump-tab="chat" style="justify-content:flex-start;padding:13px 15px;min-height:58px;text-align:left;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B9FE8" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span><span style="display:block;font-size:13px;font-weight:700;">낚시인 메신저</span><span class="muted" style="display:block;font-size:11px;font-weight:400;">오픈방·비공개방·1:1 DM</span></span>
+          </button>
+          <button type="button" class="btn-aqua" data-jump-tab="diary" style="justify-content:flex-start;padding:13px 15px;min-height:58px;text-align:left;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#36D6E8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span><span style="display:block;font-size:13px;font-weight:700;">내 조과 기록하기</span><span class="muted" style="display:block;font-size:11px;font-weight:400;">어종·크기·방생 기록 저장</span></span>
+          </button>
+        </div>
+
+        <!-- MARINE TELEMETRY & INTERACTIVE 12H CHART -->
+        <section class="glass-card" style="padding:22px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(75,159,232,0.2);padding-bottom:12px;">
             <div>
-              <div class="muted" style="font-size:12px;font-weight:700;">초보자 출조 적합도 &amp; 지역 물때</div>
-              <div id="rating-headline" style="font-size:22px;font-weight:800;margin-top:4px;color:var(--cyan);">분석 중...</div>
+              <div id="weather-model-meta" class="text-cyan" style="font-size:12px;font-weight:700;">KST 실시간 해양 관측</div>
+              <h2 style="margin:4px 0 0;font-size:18px;font-weight:800;">풍량 · 날씨 · 파고 · 수온 현황 및 12시간 해양 추이</h2>
             </div>
-            <div id="rating-score-box" class="glass-subcard font-mono" style="padding:10px 16px;text-align:center;">
-              <div style="font-size:26px;font-weight:800;color:var(--cyan);" id="rating-score-val">--</div>
-              <div class="muted" style="font-size:10px;">100점 만점</div>
+            <div id="weather-condition-pill" class="status-tag">--</div>
+          </div>
+
+          <!-- 4 Instrument Cards with Custom SVG Gauges -->
+          <div class="grid-4">
+            <div class="glass-subcard" style="padding:15px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div>
+                  <div class="muted" style="font-size:12px;font-weight:600;">풍량 · 풍향</div>
+                  <div id="metric-wind-val" class="font-mono" style="font-size:25px;font-weight:800;margin:4px 0;">--</div>
+                  <div id="metric-wind-sub" class="text-cyan" style="font-size:12px;font-weight:600;">--</div>
+                </div>
+                <svg id="svg-wind-compass" width="58" height="58" viewBox="0 0 64 64" aria-label="풍향 나침반">
+                  <circle cx="32" cy="32" r="27" fill="rgba(16,54,83,0.58)" stroke="rgba(75,159,232,0.4)" stroke-width="1.5"/>
+                  <text x="32" y="12" text-anchor="middle" fill="#A7C2D8" font-size="8" font-weight="700">N</text>
+                  <text x="54" y="35" text-anchor="middle" fill="#6b8fad" font-size="7">E</text>
+                  <text x="32" y="57" text-anchor="middle" fill="#6b8fad" font-size="7">S</text>
+                  <text x="10" y="35" text-anchor="middle" fill="#6b8fad" font-size="7">W</text>
+                  <g id="wind-arrow-group" transform="rotate(0 32 32)">
+                    <line x1="32" y1="45" x2="32" y2="17" stroke="#36D6E8" stroke-width="2.6" stroke-linecap="round"/>
+                    <polygon points="32,12 27,21 37,21" fill="#36D6E8"/>
+                  </g>
+                </svg>
+              </div>
+              <div>
+                <div class="gauge-track"><div id="wind-bar-fill" class="gauge-fill" style="width:25%;"></div></div>
+                <div id="metric-wind-advice" class="muted" style="font-size:11px;margin-top:6px;">--</div>
+              </div>
+            </div>
+
+            <div class="glass-subcard" style="padding:15px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div>
+                  <div class="muted" style="font-size:12px;font-weight:600;">날씨 · 기온</div>
+                  <div id="metric-air-val" class="font-mono" style="font-size:25px;font-weight:800;margin:4px 0;">--</div>
+                  <div id="metric-air-sub" class="text-cyan" style="font-size:12px;font-weight:600;">--</div>
+                </div>
+                <div style="width:54px;height:54px;border-radius:12px;background:rgba(16,54,83,0.75);border:1px solid rgba(75,159,232,0.3);display:grid;place-items:center;color:var(--cyan);">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                </div>
+              </div>
+              <div>
+                <div class="gauge-track"><div id="air-bar-fill" class="gauge-fill" style="width:45%;"></div></div>
+                <div id="metric-air-advice" class="muted" style="font-size:11px;margin-top:6px;">--</div>
+              </div>
+            </div>
+
+            <div class="glass-subcard" style="padding:15px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div>
+                  <div class="muted" style="font-size:12px;font-weight:600;">연안 파고</div>
+                  <div id="metric-wave-val" class="font-mono" style="font-size:25px;font-weight:800;margin:4px 0;">--</div>
+                  <div id="metric-wave-sub" class="text-aqua" style="font-size:12px;font-weight:600;">--</div>
+                </div>
+                <svg id="svg-wave-preview" width="72" height="54" viewBox="0 0 76 56" style="border-radius:10px;background:#061B33;border:1px solid rgba(75,159,232,0.28);">
+                  <line x1="0" y1="28" x2="76" y2="28" stroke="rgba(167,194,216,0.2)" stroke-dasharray="3 3"/>
+                  <path id="wave-area-path" d="M 0 32 Q 19 22 38 32 T 76 32 L 76 56 L 0 56 Z" fill="rgba(54,214,232,0.25)"/>
+                  <path id="wave-line-path" d="M 0 32 Q 19 22 38 32 T 76 32" fill="none" stroke="#36D6E8" stroke-width="2.2"/>
+                </svg>
+              </div>
+              <div>
+                <div class="gauge-track"><div id="wave-bar-fill" class="gauge-fill" style="width:20%;"></div></div>
+                <div id="metric-wave-advice" class="muted" style="font-size:11px;margin-top:6px;">--</div>
+              </div>
+            </div>
+
+            <div class="glass-subcard" style="padding:15px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div>
+                  <div class="muted" style="font-size:12px;font-weight:600;">표층 수온</div>
+                  <div id="metric-sst-val" class="font-mono" style="font-size:25px;font-weight:800;margin:4px 0;">--</div>
+                  <div id="metric-sst-sub" class="text-cyan" style="font-size:12px;font-weight:600;">--</div>
+                </div>
+                <svg width="42" height="58" viewBox="0 0 44 60" aria-label="표층 수온 게이지">
+                  <defs>
+                    <linearGradient id="sstGaugeGrad" x1="0" y1="1" x2="0" y2="0">
+                      <stop offset="0%" stop-color="#4B9FE8"/>
+                      <stop offset="55%" stop-color="#36D6E8"/>
+                      <stop offset="100%" stop-color="#f59e0b"/>
+                    </linearGradient>
+                  </defs>
+                  <rect x="16" y="6" width="12" height="38" rx="6" fill="#061B33" stroke="rgba(75,159,232,0.4)" stroke-width="1.2"/>
+                  <rect id="sst-therm-rect" x="18.5" y="20" width="7" height="22" rx="3.5" fill="url(#sstGaugeGrad)"/>
+                  <circle cx="22" cy="47" r="8" fill="#36D6E8" stroke="#061B33" stroke-width="2"/>
+                </svg>
+              </div>
+              <div>
+                <div class="gauge-track"><div id="sst-bar-fill" class="gauge-fill" style="width:55%;"></div></div>
+                <div id="metric-sst-advice" class="muted" style="font-size:11px;margin-top:6px;">--</div>
+              </div>
             </div>
           </div>
-          <p id="rating-summary-text" class="muted" style="font-size:13px;margin:0 0 12px;line-height:1.55;"></p>
-          <div class="glass-subcard" style="padding:12px;">
-            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-size:12px;margin-bottom:8px;">
-              <span><strong class="text-cyan" id="tide-multae-label">--물</strong> · <span id="tide-phase-label">--</span></span>
-              <span id="tide-next-label" class="muted">--</span>
+
+          <!-- Interactive 12h Chart Card -->
+          <div class="glass-subcard" style="padding:18px;display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+              <div>
+                <h3 style="margin:0;font-size:15px;font-weight:700;">앞으로 12시간 풍량 · 파고 · 수온 · 날씨 추이 (한국 시간 KST)</h3>
+                <p class="muted" style="margin:3px 0 0;font-size:12px;">시간대 버튼을 누르거나 그래프 점을 선택해 시간별 해양 변화를 확인하세요.</p>
+              </div>
+              <div class="chart-tabs" role="tablist" aria-label="그래프 지표 선택">
+                <button type="button" class="chart-tab-btn active" data-chart-tab="overview">전체 추이</button>
+                <button type="button" class="chart-tab-btn" data-chart-tab="wind">풍량 (m/s)</button>
+                <button type="button" class="chart-tab-btn" data-chart-tab="wave">파고 (m)</button>
+                <button type="button" class="chart-tab-btn" data-chart-tab="temp">수온·기온</button>
+                <button type="button" class="chart-tab-btn" data-chart-tab="rain">강수확률</button>
+              </div>
             </div>
-            <div class="progress-track"><div id="tide-progress-bar" class="progress-fill" style="width:50%;"></div></div>
-            <div id="tide-events-row" class="muted font-mono" style="font-size:11px;margin-top:8px;display:flex;flex-wrap:wrap;gap:12px;"></div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Recommended Fishing Times -->
-      <div class="glass-card" style="padding:20px;margin-bottom:16px;">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;">
-          <div>
-            <h2 style="margin:0;font-size:17px;">선택 지역 추천 낚시 시간대 (기상 · 물때 결합)</h2>
-            <p id="best-time-banner" class="muted" style="margin:4px 0 0;font-size:12px;">최적 입질 시간 계산 중...</p>
-          </div>
-          <span id="tide-tip-pill" class="badge">물때 조언</span>
-        </div>
-        <div id="recommended-windows-grid" class="grid-3"></div>
-      </div>
+            <div id="hourly-hud" style="background:rgba(6,27,51,0.85);border:1px solid rgba(75,159,232,0.25);border-radius:12px;padding:10px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;font-size:12px;"></div>
 
-      <!-- Ocean Weather Visualization -->
-      <div class="glass-card" style="padding:20px;margin-bottom:16px;">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px;">
-          <div>
-            <h2 style="margin:0;font-size:17px;">해양 기상 관측 · 풍속 / 파고 / 수온 / 강수 시각화</h2>
-            <p id="weather-model-meta" class="muted" style="margin:4px 0 0;font-size:12px;">대한민국 표준시(KST) 기준 24시간 추이</p>
-          </div>
-          <div id="weather-condition-pill" class="badge">--</div>
-        </div>
-        <div class="grid-4" style="margin-bottom:16px;">
-          <div class="glass-subcard" style="padding:14px;">
-            <div class="muted" style="font-size:11px;">풍량 · 풍속 / 돌풍</div>
-            <div id="metric-wind-val" class="font-mono" style="font-size:24px;font-weight:800;color:var(--cyan);margin:4px 0;">--</div>
-            <div id="metric-wind-sub" class="muted" style="font-size:11px;">--</div>
-          </div>
-          <div class="glass-subcard" style="padding:14px;">
-            <div class="muted" style="font-size:11px;">해상 파고 · 너울</div>
-            <div id="metric-wave-val" class="font-mono" style="font-size:24px;font-weight:800;color:var(--aqua);margin:4px 0;">--</div>
-            <div id="metric-wave-sub" class="muted" style="font-size:11px;">--</div>
-          </div>
-          <div class="glass-subcard" style="padding:14px;">
-            <div class="muted" style="font-size:11px;">표층 수온</div>
-            <div id="metric-sst-val" class="font-mono" style="font-size:24px;font-weight:800;color:#67e8f9;margin:4px 0;">--</div>
-            <div id="metric-sst-sub" class="muted" style="font-size:11px;">--</div>
-          </div>
-          <div class="glass-subcard" style="padding:14px;">
-            <div class="muted" style="font-size:11px;">기온 · 강수확률</div>
-            <div id="metric-air-val" class="font-mono" style="font-size:24px;font-weight:800;color:#f4faff;margin:4px 0;">--</div>
-            <div id="metric-air-sub" class="muted" style="font-size:11px;">--</div>
-          </div>
-        </div>
-        <div class="glass-subcard" style="padding:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;">
-            <strong class="text-cyan">시간대별 풍속(m/s) · 파고(m) · 수온(℃) 통합 추이</strong>
-            <span class="muted">KST 향후 12시간</span>
-          </div>
-          <div id="hourly-chart-container" style="width:100%;overflow-x:auto;"></div>
-        </div>
-      </div>
+            <div id="hourly-chart-container" style="width:100%;overflow-x:auto;"></div>
 
-      <!-- Nearby 1h Fishing Spots & Parks Fallback -->
-      <div class="glass-card" style="padding:20px;margin-bottom:16px;">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;">
-          <div>
-            <h2 style="margin:0;font-size:17px;">선택 지역 반경 차량 1시간 이내 추천 장소 (낚시터 · 공원 자동 탐색)</h2>
-            <p id="nearby-subtitle" class="muted" style="margin:4px 0 0;font-size:12px;">공식 낚시터·방파제 우선 추천, 도심·내륙 등 낚시터가 없으면 주변 수변공원·근린공원을 자동으로 찾습니다.</p>
+            <div id="hourly-chips-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(56px,1fr));gap:6px;"></div>
           </div>
-          <button type="button" id="btn-reload-nearby" class="btn-aqua" style="font-size:12px;">주변 다시 탐색</button>
-        </div>
-        <div id="nearby-spots-grid" class="grid-3"></div>
-      </div>
+        </section>
 
-      <!-- Current-Month KST Seasonal Regulations & Safety -->
-      <div class="glass-card" style="padding:20px;">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;">
-          <div>
-            <h2 style="margin:0;font-size:17px;">현재 시기 주의 금어기 · 금지체장 · 해양 안전수칙</h2>
-            <p id="seasonal-reg-subtitle" class="muted" style="margin:4px 0 0;font-size:12px;">대한민국 현재 날짜(KST)에 실제 해당하는 어종만 선별 표시합니다.</p>
+        <!-- CURRENT-SEASON ONLY REGULATIONS & SAFETY RULES -->
+        <section class="glass-card" style="padding:22px;display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(75,159,232,0.2);padding-bottom:12px;">
+            <div>
+              <div id="seasonal-month-badge" class="text-cyan" style="font-size:12px;font-weight:700;">KST 날짜 기준 자동 선별</div>
+              <h2 style="margin:4px 0 0;font-size:18px;font-weight:800;">지금 시기 주의해야 할 금어기 · 금지체장 &amp; 해양 안전 수칙</h2>
+            </div>
+            <button type="button" class="btn-aqua" data-jump-tab="guide" style="font-size:12px;">전체 보호 가이드 보기 →</button>
           </div>
-          <span id="seasonal-month-badge" class="badge badge-warn">이달의 규정</span>
-        </div>
-        <div class="grid-3">
-          <div class="glass-subcard" style="padding:14px;">
-            <div style="font-weight:700;font-size:13px;color:#fda4af;margin-bottom:8px;">이달의 포획 금지 (금어기)</div>
-            <div id="seasonal-bans-list" style="display:flex;flex-direction:column;gap:8px;font-size:12px;"></div>
+
+          <div class="grid-3">
+            <div class="glass-subcard" style="padding:15px;border-color:rgba(251,113,133,0.32);">
+              <div style="font-weight:700;font-size:13px;color:#fda4af;margin-bottom:10px;">이달의 진행 중 금어기</div>
+              <div id="seasonal-bans-list" style="display:flex;flex-direction:column;gap:8px;font-size:12px;"></div>
+            </div>
+            <div class="glass-subcard" style="padding:15px;border-color:rgba(251,191,36,0.32);">
+              <div style="font-weight:700;font-size:13px;color:#fcd34d;margin-bottom:10px;">이달의 금지체장 주의 어종</div>
+              <div id="seasonal-sizes-list" style="display:flex;flex-direction:column;gap:8px;font-size:12px;"></div>
+            </div>
+            <div class="glass-subcard" style="padding:15px;border-color:rgba(54,214,232,0.32);">
+              <div style="font-weight:700;font-size:13px;color:var(--cyan);margin-bottom:10px;">필수 해양 안전 수칙</div>
+              <div id="marine-safety-list" style="display:flex;flex-direction:column;gap:8px;font-size:12px;"></div>
+            </div>
           </div>
-          <div class="glass-subcard" style="padding:14px;">
-            <div style="font-weight:700;font-size:13px;color:#fcd34d;margin-bottom:8px;">이달의 금지체장 주의 어종</div>
-            <div id="seasonal-sizes-list" style="display:flex;flex-direction:column;gap:8px;font-size:12px;"></div>
+        </section>
+
+        <!-- NEARBY 1-HOUR DRIVING SPOTS & PARKS -->
+        <section class="glass-card" style="padding:22px;display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(75,159,232,0.2);padding-bottom:12px;">
+            <div>
+              <div class="text-cyan" style="font-size:12px;font-weight:700;">선택 지역 기준 차량 최대 1시간 이내</div>
+              <h2 style="margin:4px 0 0;font-size:18px;font-weight:800;">주변 추천 낚시터 · 수변 공원 자동 탐색</h2>
+              <p class="muted" style="margin:4px 0 0;font-size:12px;">공식 낚시터·방파제를 우선 추천하며, 도심·내륙 등 낚시터가 적은 지역은 주변 수변·근린공원을 자동으로 찾습니다.</p>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+              <button type="button" id="btn-filter-30m" class="btn-aqua" style="font-size:12px;min-height:36px;">30분 이내</button>
+              <button type="button" id="btn-filter-60m" class="btn-cyan" style="font-size:12px;min-height:36px;">60분 이내</button>
+              <button type="button" id="btn-reload-nearby" class="btn-aqua" style="font-size:12px;min-height:36px;">주변 재탐색</button>
+            </div>
           </div>
-          <div class="glass-subcard" style="padding:14px;">
-            <div style="font-weight:700;font-size:13px;color:var(--cyan);margin-bottom:8px;">필수 해양 안전 수칙</div>
-            <div id="marine-safety-list" style="display:flex;flex-direction:column;gap:8px;font-size:12px;"></div>
-          </div>
-        </div>
+          <div id="nearby-spots-grid" class="grid-3"></div>
+        </section>
       </div>
     </section>
 
-    <!-- TAB 2: AI IDENTIFY -->
+    <!-- ==================== TAB 2: AI IDENTIFY ==================== -->
     <section id="tab-identify" class="tab-panel">
-      <div class="grid-2" style="margin-bottom:16px;">
-        <div class="glass-card" style="padding:20px;">
-          <h2 style="margin:0 0 8px;font-size:18px;">1. 사진 업로드 · AI 어종 판별</h2>
-          <p class="muted" style="margin:0 0 12px;font-size:12px;">잡은 물고기 사진을 올리면 체형·색조를 분석해 어종과 식용 여부, 추천 요리법을 알려드립니다.</p>
-          <input type="file" id="fish-photo-input" accept="image/*" style="margin-bottom:10px;" />
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
-            <button type="button" class="btn-aqua sample-fish-btn" data-fish="참돔" style="font-size:12px;">샘플: 참돔</button>
-            <button type="button" class="btn-aqua sample-fish-btn" data-fish="광어" style="font-size:12px;">샘플: 광어</button>
-            <button type="button" class="btn-aqua sample-fish-btn" data-fish="졸복" style="font-size:12px;">샘플: 졸복(맹독)</button>
-            <button type="button" class="btn-aqua sample-fish-btn" data-fish="해마" style="font-size:12px;">샘플: 해마(보호종)</button>
-          </div>
-          <div id="photo-preview-box" class="glass-subcard" style="padding:12px;display:none;text-align:center;">
-            <img id="photo-preview-img" alt="물고기 미리보기" style="max-height:180px;border-radius:10px;max-width:100%;" />
-          </div>
-        </div>
+      <div class="stack-lg">
+        <div class="glass-card" style="padding:22px;">
+          <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;">AI 물고기 검색 · 어종 정밀 판별 · 식용 및 요리법 추천</h2>
+          <p class="muted" style="margin:0 0 10px;font-size:13px;">
+            어종 이름·방언 검색, 사진 업로드, 또는 생김새 특징을 자유롭게 직접 입력하면 AI가 어종을 분석하고 식용 여부와 요리법, 유사 어종 이미지를 제공합니다.
+          </p>
+          <p style="margin:0 0 16px;padding:9px 12px;border-radius:10px;background:rgba(120,53,15,0.28);border:1px solid rgba(245,158,11,0.35);color:#fde68a;font-size:12px;line-height:1.5;">
+            ※ AI는 언제나 정확한 정답만 말하지 않으며 정확한 정답에 가깝게 하기 위해 특징을 자세히 입력해 주세요.
+          </p>
 
-        <div class="glass-card" style="padding:20px;">
-          <h2 style="margin:0 0 8px;font-size:18px;">2. 어종 이름 · 특징 직접 입력 AI 분석</h2>
-          <p class="muted" style="margin:0 0 10px;font-size:12px;">이름을 알거나 생김새(색·무늬·지느러미·서식지)를 직접 입력하면 정확한 판별 또는 유사 어종과 이미지를 찾아드립니다.</p>
-          <form id="fish-name-form" style="display:flex;gap:8px;margin-bottom:10px;">
-            <input type="text" id="fish-name-input" placeholder="어종명 검색 (예: 우럭, 감성돔, 복어, 꼬시래기)" />
-            <button type="submit" class="btn-cyan" style="white-space:nowrap;">이름 검색</button>
-          </form>
-          <form id="fish-feature-form">
-            <label for="fish-feature-input" class="text-cyan" style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">특징 직접 입력 (칸 최소화 자유 서술)</label>
-            <textarea id="fish-feature-input" rows="3" placeholder="예: 25cm 정도 어두운 갈색 몸통에 얼룩무늬가 있고 등지느러미 가시가 날카로워요. 방파제에서 잡혔어요."></textarea>
-            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
-              <button type="submit" class="btn-cyan">AI 특징 분석 · 유사종 찾기</button>
+          <div class="grid-2">
+            <!-- Left: Search + Direct Free-form Input -->
+            <div class="glass-subcard" style="padding:18px;display:flex;flex-direction:column;gap:14px;">
+              <div>
+                <div class="text-cyan" style="font-size:13px;font-weight:700;margin-bottom:8px;">1. 어종명 / 방언 빠른 검색</div>
+                <form id="fish-name-form" style="display:flex;gap:8px;">
+                  <input type="text" id="fish-name-input" placeholder="예: 참돔, 우럭, 감성돔, 졸복, 해마, 쏠배감펭" />
+                  <button type="submit" class="btn-cyan">검색·판별</button>
+                </form>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">
+                  <button type="button" class="btn-aqua sample-fish-btn" data-fish="참돔" style="min-height:32px;padding:4px 10px;font-size:11px;">참돔</button>
+                  <button type="button" class="btn-aqua sample-fish-btn" data-fish="우럭" style="min-height:32px;padding:4px 10px;font-size:11px;">우럭</button>
+                  <button type="button" class="btn-aqua sample-fish-btn" data-fish="광어" style="min-height:32px;padding:4px 10px;font-size:11px;">광어</button>
+                  <button type="button" class="btn-aqua sample-fish-btn" data-fish="고등어" style="min-height:32px;padding:4px 10px;font-size:11px;">고등어</button>
+                  <button type="button" class="btn-aqua sample-fish-btn" data-fish="졸복" style="min-height:32px;padding:4px 10px;font-size:11px;">졸복 (맹독)</button>
+                  <button type="button" class="btn-aqua sample-fish-btn" data-fish="해마" style="min-height:32px;padding:4px 10px;font-size:11px;">해마 (보호종)</button>
+                </div>
+              </div>
+
+              <form id="fish-feature-form" style="display:flex;flex-direction:column;gap:8px;">
+                <label for="fish-feature-input" class="text-cyan" style="font-size:13px;font-weight:700;">2. 어종 특징 직접 입력 (단일 자유 서술)</label>
+                <textarea id="fish-feature-input" rows="3" placeholder="예: 25cm 정도 어두운 갈색 몸통에 얼룩무늬가 있고 등지느러미 가시가 날카로워요. 방파제 바닥에서 잡혔습니다."></textarea>
+                <div style="display:flex;justify-content:flex-end;">
+                  <button type="submit" class="btn-cyan">특징 분석 · 유사종 찾기</button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      </div>
 
-      <div id="fish-analysis-result" class="glass-card" style="padding:22px;"></div>
+            <!-- Right: Photo Upload -->
+            <div class="glass-subcard" style="padding:18px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;">
+              <div>
+                <div class="text-cyan" style="font-size:13px;font-weight:700;margin-bottom:6px;">3. 잡은 물고기 사진 업로드 판별</div>
+                <p class="muted" style="margin:0 0 12px;font-size:12px;">사진의 체색 분포와 명암·비율을 즉석 분석해 가장 일치하는 어종과 비교 후보를 안내합니다.</p>
+                <input type="file" id="fish-photo-input" accept="image/*" />
+              </div>
+              <div id="photo-preview-box" style="display:none;text-align:center;background:rgba(6,27,51,0.75);border-radius:12px;padding:10px;border:1px solid rgba(75,159,232,0.25);">
+                <img id="photo-preview-img" alt="업로드 물고기 미리보기" style="max-height:175px;max-width:100%;border-radius:10px;object-fit:contain;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="fish-analysis-result" class="glass-card" style="padding:22px;"></div>
+      </div>
     </section>
 
-    <!-- TAB 3: MAP & SPOTS -->
+    <!-- ==================== TAB 3: MAP & SPOTS ==================== -->
     <section id="tab-spots" class="tab-panel">
-      <div class="glass-card" style="padding:20px;margin-bottom:16px;">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
-          <div>
-            <h2 style="margin:0;font-size:18px;">전국 무제한 위성·해양 포인트 지도</h2>
-            <p class="muted" style="margin:4px 0 0;font-size:12px;">지도를 클릭하거나 지역을 검색하면 홈 화면의 날씨·물때·추천 시간·1시간 이내 공원/낚시터가 즉시 해당 지역 기준으로 바뀝니다.</p>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
-            <button type="button" id="btn-layer-sat" class="btn-cyan" style="font-size:12px;">위성 지도</button>
-            <button type="button" id="btn-layer-osm" class="btn-aqua" style="font-size:12px;">일반 지도</button>
-            <button type="button" id="btn-map-wheel" class="btn-aqua" style="font-size:12px;">스크롤 확대 잠금 (켜기)</button>
-          </div>
-        </div>
-        <form id="map-search-form" style="display:flex;gap:8px;margin-bottom:12px;">
-          <input type="text" id="map-search-input" placeholder="무제한 장소 검색 (예: 여의도 한강공원, 해운대, 태안 안면도, 부산 영도)" />
-          <button type="submit" class="btn-cyan" style="white-space:nowrap;">지역 이동</button>
-        </form>
-        <div id="leaflet-map"></div>
-      </div>
-
-      <div class="glass-card" style="padding:20px;">
-        <h3 style="margin:0 0 12px;font-size:16px;">선택 지역 기상 · 물때 · 추천 시간 · 공원/포인트 요약</h3>
-        <div id="map-sync-summary" class="grid-3"></div>
-      </div>
-    </section>
-
-    <!-- TAB 4: GUIDE -->
-    <section id="tab-guide" class="tab-panel">
-      <div class="grid-2">
-        <div class="glass-card" style="padding:20px;">
-          <h2 style="margin:0 0 12px;font-size:18px;">초보자 해양 낚시 채비 · 물때 핵심 가이드</h2>
-          <div class="glass-subcard" style="padding:14px;margin-bottom:10px;">
-            <strong class="text-cyan">1. 물때(조수간만) 이해하기</strong>
-            <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6;">1물~4물(초조~네물)과 11물~14물(조금 전후)은 조류가 완만해 채비 엉킴이 적고 초보자가 입질 파악하기 가장 좋습니다. 사리(7~9물) 기간에는 안전을 우선하세요.</p>
-          </div>
-          <div class="glass-subcard" style="padding:14px;margin-bottom:10px;">
-            <strong class="text-cyan">2. 초보자 필수 입문 채비 3가지</strong>
-            <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6;">① 방파제 묶음추 원투낚시(청갯지렁이) ② 카드채비(고등어·전갱이) ③ 가벼운 지그헤드 루어(우럭·볼락). 내항 평탄한 구역부터 시작하세요.</p>
-          </div>
-          <div class="glass-subcard" style="padding:14px;">
-            <strong class="text-cyan">3. 기상철수 기준</strong>
-            <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6;">풍속 8.0m/s 이상 또는 파고 1.5m 이상이면 초보자 방파제·갯바위 출조를 즉시 중단하고 안전 구역으로 이동하세요.</p>
-          </div>
-        </div>
-        <div class="glass-card" style="padding:20px;">
-          <h2 style="margin:0 0 12px;font-size:18px;">전국 주요 금어기 · 금지체장 전체 기준표</h2>
-          <div id="guide-full-bans" style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 5: DIARY -->
-    <section id="tab-diary" class="tab-panel">
-      <div class="grid-2">
-        <div class="glass-card" style="padding:20px;">
-          <h2 style="margin:0 0 12px;font-size:18px;">새 조과 일지 기록</h2>
-          <form id="diary-form" style="display:flex;flex-direction:column;gap:10px;">
-            <input type="text" id="diary-species" placeholder="어종 이름 (예: 참돔, 우럭)" required />
-            <input type="text" id="diary-location" placeholder="출조 장소" required />
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <input type="number" id="diary-size" placeholder="크기 (cm)" value="30" min="1" required />
-              <select id="diary-released">
-                <option value="false">킵 (식용/보관)</option>
-                <option value="true">즉시 방생 (치어·보호)</option>
-              </select>
+      <div class="stack-lg">
+        <div class="glass-card" style="padding:22px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+            <div>
+              <h2 style="margin:0;font-size:19px;font-weight:800;">전국 무제한 위성·해양 포인트 지도</h2>
+              <p class="muted" style="margin:4px 0 0;font-size:12px;">지도를 클릭하거나 지역을 검색하면 날씨·물때·추천 시간·1시간 이내 공원/낚시터가 즉시 해당 지역으로 동기화됩니다.</p>
             </div>
-            <textarea id="diary-memo" rows="3" placeholder="사용 미끼, 물때, 입질 상황 메모"></textarea>
-            <button type="submit" class="btn-cyan">조과 기록 저장</button>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <button type="button" id="btn-layer-sat" class="btn-cyan" style="min-height:36px;font-size:12px;">위성 지도</button>
+              <button type="button" id="btn-layer-osm" class="btn-aqua" style="min-height:36px;font-size:12px;">일반 지도</button>
+              <button type="button" id="btn-map-wheel" class="btn-aqua" style="min-height:36px;font-size:12px;">스크롤 확대 잠금 (켜기)</button>
+            </div>
+          </div>
+
+          <form id="map-search-form" style="display:flex;gap:8px;">
+            <input type="text" id="map-search-input" placeholder="무제한 장소 검색 (예: 여의도 한강공원, 부산 해운대, 태안 안면도, 속초 대포항)" />
+            <button type="submit" class="btn-cyan">지역 이동</button>
           </form>
+
+          <div id="leaflet-map"></div>
         </div>
+
         <div class="glass-card" style="padding:20px;">
-          <h2 style="margin:0 0 12px;font-size:18px;">나의 조과 기록함</h2>
-          <div id="diary-list" style="display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto;"></div>
+          <h3 style="margin:0 0 12px;font-size:16px;font-weight:800;">선택 지역 실시간 기상 · 물때 · 추천 시간 · 공원/포인트 요약</h3>
+          <div id="map-sync-summary" class="grid-3"></div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 6: CHAT -->
+    <!-- ==================== TAB 4: MESSENGER ==================== -->
     <section id="tab-chat" class="tab-panel">
-      <div class="glass-card" style="padding:20px;">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;">
+      <div class="glass-card" style="padding:22px;display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
           <div>
-            <h2 style="margin:0;font-size:18px;">오픈채팅 · 비공개방 · 1:1 낚시인 DM</h2>
+            <h2 style="margin:0;font-size:19px;font-weight:800;">오픈채팅 · 비공개방 · 1:1 낚시인 DM</h2>
             <p id="chat-mode-desc" class="muted" style="margin:4px 0 0;font-size:12px;">연결 확인 중...</p>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-            <span id="chat-user-badge" class="badge">닉네임 설정</span>
+            <span id="chat-user-badge" class="status-tag">닉네임 설정</span>
             <input type="text" id="chat-nickname-input" placeholder="닉네임" style="width:130px;padding:7px 10px;" />
-            <button type="button" id="btn-save-nick" class="btn-aqua" style="font-size:12px;">닉네임 적용</button>
-            <button type="button" id="btn-google-login" class="btn-cyan" style="font-size:12px;display:none;">Google 로그인</button>
+            <button type="button" id="btn-save-nick" class="btn-aqua" style="min-height:36px;font-size:12px;">닉네임 적용</button>
           </div>
         </div>
 
@@ -479,21 +1157,27 @@
               <input type="text" id="new-room-title" placeholder="방 제목 (예: 부산 밤볼락 동출방)" required />
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
                 <select id="new-room-visibility">
-                  <option value="public">공개방 (누구나 검색)</option>
+                  <option value="public">공개방 (누구나 참여)</option>
                   <option value="private">비공개방 (초대코드)</option>
                 </select>
-                <input type="text" id="new-room-region" placeholder="지역 (예: 부산/남해)" value="전국" />
+                <select id="new-room-region">
+                  <option value="전체">전체</option>
+                  <option value="동해">동해</option>
+                  <option value="서해">서해</option>
+                  <option value="남해">남해</option>
+                  <option value="제주">제주</option>
+                </select>
               </div>
               <button type="submit" class="btn-cyan" style="font-size:12px;">방 생성하기</button>
             </form>
 
             <form id="join-code-form" style="display:flex;gap:6px;">
-              <input type="text" id="invite-code-input" placeholder="비공개방 초대코드" style="text-transform:uppercase;" />
-              <button type="submit" class="btn-aqua" style="white-space:nowrap;font-size:12px;">코드 입장</button>
+              <input type="text" id="invite-code-input" placeholder="초대코드 입력" style="text-transform:uppercase;" />
+              <button type="submit" class="btn-aqua" style="min-height:38px;font-size:12px;">코드 입장</button>
             </form>
 
-            <div style="font-size:12px;font-weight:700;" class="muted">채팅방 목록</div>
-            <div id="chat-rooms-list" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;"></div>
+            <div class="muted" style="font-size:12px;font-weight:700;">채팅방 목록</div>
+            <div id="chat-rooms-list" style="display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;"></div>
           </div>
 
           <div class="glass-subcard" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
@@ -503,32 +1187,124 @@
                 <div id="active-room-meta" class="muted" style="font-size:11px;">방 참여 후 대화가 가능합니다.</div>
               </div>
               <div style="display:flex;gap:6px;">
-                <button type="button" id="btn-join-room" class="btn-cyan" style="font-size:12px;display:none;">방 참여하기</button>
-                <button type="button" id="btn-delete-room" class="btn-danger" style="font-size:12px;display:none;">방 삭제</button>
+                <button type="button" id="btn-join-room" class="btn-cyan" style="min-height:36px;font-size:12px;display:none;">방 참여하기</button>
+                <button type="button" id="btn-delete-room" class="btn-danger" style="display:none;">방 삭제</button>
               </div>
             </div>
             <div id="chat-messages-box" class="chat-messages"></div>
             <form id="chat-send-form" style="display:flex;gap:8px;">
               <input type="text" id="chat-message-input" placeholder="메시지 입력 (비속어는 *로 자동 마스킹됩니다)" />
-              <button type="button" id="btn-share-spot" class="btn-aqua" style="white-space:nowrap;font-size:12px;">현재위치 첨부</button>
-              <button type="submit" id="btn-send-msg" class="btn-cyan" style="white-space:nowrap;">전송</button>
+              <button type="button" id="btn-share-spot" class="btn-aqua" style="font-size:12px;">현재위치</button>
+              <button type="submit" id="btn-send-msg" class="btn-cyan">전송</button>
             </form>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- ==================== TAB 5: GUIDE ==================== -->
+    <section id="tab-guide" class="tab-panel">
+      <div class="grid-2">
+        <div class="glass-card" style="padding:22px;display:flex;flex-direction:column;gap:12px;">
+          <h2 style="margin:0;font-size:19px;font-weight:800;">초보자 해양 낚시 채비 · 물때 · 안전 가이드</h2>
+          <div class="glass-subcard" style="padding:14px;">
+            <strong class="text-cyan" style="font-size:14px;">1. 물때(조수간만) 이해하기</strong>
+            <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6;">1물~4물(초조~네물)과 11물~14물(조금 전후)은 조류가 완만해 채비 엉킴이 적고 초보자가 입질을 파악하기 좋습니다. 사리(7~9물) 기간에는 안전을 최우선하세요.</p>
+          </div>
+          <div class="glass-subcard" style="padding:14px;">
+            <strong class="text-cyan" style="font-size:14px;">2. 초보자 필수 입문 채비 3가지</strong>
+            <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6;">① 방파제 묶음추 원투낚시(청갯지렁이) ② 카드채비(고등어·전갱이) ③ 가벼운 지그헤드 루어(우럭·볼락). 안전 난간이 있는 내항 평탄 구역부터 시작하세요.</p>
+          </div>
+          <div class="glass-subcard" style="padding:14px;">
+            <strong class="text-cyan" style="font-size:14px;">3. 기상 철수 기준 &amp; 보호생물 방생</strong>
+            <p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.6;">풍속 8.0m/s 이상 또는 파고 1.5m 이상이면 방파제·갯바위 출조를 즉시 중단하세요. 해마·바다거북 등 해양보호생물은 크기 무관 즉시 방생해야 합니다.</p>
+          </div>
+        </div>
+
+        <div class="glass-card" style="padding:22px;display:flex;flex-direction:column;gap:12px;">
+          <h2 style="margin:0;font-size:19px;font-weight:800;">전국 주요 금어기 · 금지체장 전체 기준표</h2>
+          <div id="guide-full-bans" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: DIARY ==================== -->
+    <section id="tab-diary" class="tab-panel">
+      <div class="grid-2">
+        <div class="glass-card" style="padding:22px;">
+          <h2 style="margin:0 0 12px;font-size:19px;font-weight:800;">새 조과 일지 기록 (KST)</h2>
+          <form id="diary-form" style="display:flex;flex-direction:column;gap:10px;">
+            <input type="text" id="diary-species" placeholder="어종 이름 (예: 참돔, 우럭, 광어)" required />
+            <div style="display:flex;gap:6px;">
+              <input type="text" id="diary-location" placeholder="출조 장소" required />
+              <button type="button" id="btn-diary-fill-loc" class="btn-aqua" style="font-size:12px;">현재 위치</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <input type="number" id="diary-size" placeholder="크기 (cm)" value="30" min="1" required />
+              <select id="diary-released">
+                <option value="false">킵 (식용/보관)</option>
+                <option value="true">즉시 방생 (C&amp;R)</option>
+              </select>
+            </div>
+            <textarea id="diary-memo" rows="3" placeholder="사용 미끼, 물때, 입질 상황 메모"></textarea>
+            <button type="submit" class="btn-cyan">조과 기록 저장</button>
+          </form>
+        </div>
+
+        <div class="glass-card" style="padding:22px;">
+          <h2 style="margin:0 0 12px;font-size:19px;font-weight:800;">나의 조과 기록함</h2>
+          <div id="diary-list" style="display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <!-- MOBILE BOTTOM NAVIGATION -->
   <nav class="mobile-bottom-nav" aria-label="모바일 하단 메뉴">
-    <button type="button" class="mobile-nav-btn active" data-tab="home">홈</button>
-    <button type="button" class="mobile-nav-btn" data-tab="identify">어종AI</button>
-    <button type="button" class="mobile-nav-btn" data-tab="spots">지도</button>
-    <button type="button" class="mobile-nav-btn" data-tab="guide">가이드</button>
-    <button type="button" class="mobile-nav-btn" data-tab="diary">일지</button>
-    <button type="button" class="mobile-nav-btn" data-tab="chat">채팅</button>
+    <button type="button" class="mobile-nav-btn active" data-tab="home">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span>홈</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="identify">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.912 5.813L20 10.75l-6.088 1.937L12 18.5l-1.912-5.813L4 10.75l6.088-1.937L12 3z"/></svg>
+      <span>어종AI</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="spots">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>지도</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="chat">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>메신저</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="guide">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>가이드</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="diary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>일지</span>
+    </button>
   </nav>
 
-  <div id="toast-banner" class="toast-banner"></div>
+  <!-- NICKNAME MODAL -->
+  <div id="nickname-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nick-modal-title">
+    <div class="glass-card" style="max-width:400px;width:100%;padding:24px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 id="nick-modal-title" style="margin:0;font-size:18px;font-weight:800;">낚시 닉네임 설정</h3>
+        <button type="button" id="btn-close-nick-modal" class="btn-aqua" style="min-height:34px;padding:4px 10px;">닫기</button>
+      </div>
+      <p class="muted" style="margin:0;font-size:12px;">오픈채팅과 비공개방에서 표시될 닉네임(2~20자)을 입력하세요.</p>
+      <form id="modal-nick-form" style="display:flex;flex-direction:column;gap:10px;">
+        <input type="text" id="modal-nick-input" minlength="2" maxlength="20" placeholder="예: 해운대초보조사" required />
+        <button type="submit" class="btn-cyan">닉네임 저장하기</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-banner" class="toast-banner" role="status"></div>
+
+  <!-- CDN LIBRARIES ONLY -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -551,7 +1327,7 @@
         var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 190">' +
           '<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#061B33"/><stop offset="100%" stop-color="#0B2948"/></linearGradient>' +
           '<linearGradient id="bd" x1="0" y1="0" x2="1" y2="0.5"><stop offset="0%" stop-color="' + c1 + '"/><stop offset="100%" stop-color="' + c2 + '"/></linearGradient></defs>' +
-          '<rect width="360" height="190" fill="url(#bg)"/><circle cx="290" cy="40" r="65" fill="#36D6E8" opacity="0.08"/>' +
+          '<rect width="360" height="190" fill="url(#bg)"/><circle cx="290" cy="40" r="65" fill="#36D6E8" opacity="0.09"/>' +
           '<path d="M55 95 C100 45, 220 45, 275 95 C220 145, 100 145, 55 95 Z" fill="url(#bd)"/>' +
           '<polygon points="270,95 318,62 308,95 318,128" fill="' + c2 + '" opacity="0.9"/>' +
           '<polygon points="145,56 190,34 215,58" fill="' + c1 + '" opacity="0.85"/>' +
@@ -573,7 +1349,7 @@
             { dish: '껍질 숙성회 (마스카와)', diff: '보통', method: '껍질째 끓는 물에 살짝 데친 뒤 얼음물에 식혀 얇게 썰어냅니다.', tip: '초장과 와사비 간장 모두 잘 어울립니다.' },
             { dish: '참돔 맑은 지리탕', diff: '쉬움', method: '뼈와 머리를 무·대파·청주와 함께 20분간 푹 끓입니다.', tip: '감칠맛이 진해 소금만 살짝 간하세요.' }
           ],
-          colorTone: 'red', svg: makeFishSvgDataUri('참돔 · Pagrus major', '#fb7185', '#f43f5e', false), wikiQuery: 'Pagrus major'
+          svg: makeFishSvgDataUri('참돔 · Pagrus major', '#fb7185', '#f43f5e', false), wikiQuery: 'Pagrus major'
         },
         {
           id: 'gamsungdom', name: '감성돔 (Black Porgy)', aliases: ['감성돔', '감시', '떡감시', 'black porgy'],
@@ -584,9 +1360,9 @@
           edible: true, toxicity: '독성 없음', fishingBan: '금어기 5/1 ~ 5/31 · 금지체장 25cm 이하 금지',
           recipes: [
             { dish: '감성돔 활어회·세꼬시', diff: '보통', method: '피를 완전히 뺀 뒤 포를 떠서 쫄깃한 살결을 즐깁니다.', tip: '겨울철 감성돔은 단맛이 뛰어납니다.' },
-            { dish: '감성돔 소금구이', diff: '쉬움', method: '몸통에 칼집을 내어 굵은 소금을 뿌려 굽습니다.', tip: '오븐이나 에어프라이어 180도 15분 추천.' }
+            { dish: '감성돔 소금구이', diff: '쉬움', method: '몸통에 칼집을 내어 굵은 소금을 뿌려 굽습니다.', tip: '180도 오븐이나 에어프라이어 15분 추천.' }
           ],
-          colorTone: 'dark', svg: makeFishSvgDataUri('감성돔 · Black Porgy', '#64748b', '#334155', true), wikiQuery: 'Acanthopagrus schlegelii'
+          svg: makeFishSvgDataUri('감성돔 · Black Porgy', '#64748b', '#334155', true), wikiQuery: 'Acanthopagrus schlegelii'
         },
         {
           id: 'gwangeo', name: '넙치 / 광어 (Olive Flounder)', aliases: ['광어', '넙치', 'olive flounder', '도다리'],
@@ -599,20 +1375,20 @@
             { dish: '광어 묵은지 초밥·회', diff: '보통', method: '등살과 지느러미(엔가와)를 분리해 차갑게 썰어 냅니다.', tip: '지느러미 살은 식감이 아삭하고 고소합니다.' },
             { dish: '광어 미역국', diff: '쉬움', method: '참기름에 불린 미역과 광어 살·뼈를 넣고 끓입니다.', tip: '담백하고 시원한 국물이 일품입니다.' }
           ],
-          colorTone: 'brown', svg: makeFishSvgDataUri('넙치(광어) · Olive Flounder', '#a16207', '#713f12', false), wikiQuery: 'Paralichthys olivaceus'
+          svg: makeFishSvgDataUri('넙치(광어) · Olive Flounder', '#a16207', '#713f12', false), wikiQuery: 'Paralichthys olivaceus'
         },
         {
           id: 'ureok', name: '조피볼락 / 우럭 (Rockfish)', aliases: ['우럭', '조피볼락', '볼락', 'rockfish'],
           scientificName: 'Sebastes schlegelii', category: '농어/볼락류', averageSize: '25~45cm',
           habitat: '암초·방파제 테트라포드', features: '어두운 흑갈색·암회색 몸통에 얼룩무늬가 있고 머리와 등지느러미 가시가 매우 억셉니다.',
           bodyColor: '어두운 흑갈색에 불규칙한 얼룩', fins: '날카로운 13개의 등지느러미 가시', head: '큰 입과 아가미 뚜껑 가시',
-          diff: '볼락(붉은/검정볼락)은 눈이 훨씬 크고 몸집이 작으며 가시가 우럭보다 얇습니다.',
+          diff: '볼락은 눈이 훨씬 크고 몸집이 작으며 가시가 우럭보다 얇습니다.',
           edible: true, toxicity: '독성 없음 (지느러미 가시 찔림 주의)', fishingBan: '금지체장 23cm 이하 연중 포획 금지',
           recipes: [
             { dish: '우럭 매운탕', diff: '쉬움', method: '무·양파·청양고추·고춧가루 양념장에 손질한 우럭을 넣고 15분 끓입니다.', tip: '미나리와 수제비를 넣으면 더욱 맛있습니다.' },
-            { dish: '반건조 우럭찜', diff: '보통', method: '소금 간해 말린 우럭을 쪄낸 뒤 간장 양념을 올립니다.', tip: '살이 탱글탱글해 술안주로 좋습니다.' }
+            { dish: '반건조 우럭찜', diff: '보통', method: '소금 간해 말린 우럭을 쪄낸 뒤 간장 양념을 올립니다.', tip: '살이 탱글탱글해 별미입니다.' }
           ],
-          colorTone: 'dark', svg: makeFishSvgDataUri('조피볼락(우럭) · Rockfish', '#475569', '#1e293b', true), wikiQuery: 'Sebastes schlegelii'
+          svg: makeFishSvgDataUri('조피볼락(우럭) · Rockfish', '#475569', '#1e293b', true), wikiQuery: 'Sebastes schlegelii'
         },
         {
           id: 'jolbok', name: '졸복 / 복어류 (Pufferfish)', aliases: ['복어', '졸복', '복', '까치복', '황복', 'puffer'],
@@ -622,7 +1398,7 @@
           diff: '가시복은 몸 전체에 긴 가시가 돋아 있습니다. 모든 복어류는 부위별 맹독을 가질 수 있습니다.',
           edible: false, toxicity: '맹독 주의 (테트로도톡신 — 일반인 자가 손질·섭취 절대 금지)', fishingBan: '일반인 손질·취식 절대 금지 (전문 복어조리사 필수)',
           recipes: [],
-          colorTone: 'yellow', svg: makeFishSvgDataUri('졸복(복어류) · 맹독 주의', '#eab308', '#ca8a04', true), wikiQuery: 'Takifugu'
+          svg: makeFishSvgDataUri('졸복(복어류) · 맹독 주의', '#eab308', '#ca8a04', true), wikiQuery: 'Takifugu'
         },
         {
           id: 'ssolbae', name: '쏠배감펭 (Lionfish)', aliases: ['쏠배감펭', '미역치', '독가시치', '독고기', 'lionfish'],
@@ -632,7 +1408,7 @@
           diff: '화려한 지느러미 가시에 쏘이면 극심한 통증·마비가 오므로 절대 맨손으로 만지지 마세요.',
           edible: false, toxicity: '가시 독성 강함 (비식용·즉시 방생 권장)', fishingBan: '방파제 접촉 주의 (피시그립 사용)',
           recipes: [],
-          colorTone: 'red', svg: makeFishSvgDataUri('쏠배감펭 · 독성 가시 주의', '#f97316', '#dc2626', true), wikiQuery: 'Pterois lunulata'
+          svg: makeFishSvgDataUri('쏠배감펭 · 독성 가시 주의', '#f97316', '#dc2626', true), wikiQuery: 'Pterois lunulata'
         },
         {
           id: 'doldom', name: '돌돔 (Striped Beakfish)', aliases: ['돌돔', '줄돔', '뺀찌', 'striped beakfish'],
@@ -644,7 +1420,7 @@
           recipes: [
             { dish: '돌돔 숙성회', diff: '중급', method: '단단한 육질을 얇게 포를 떠 얼음 위에서 즐깁니다.', tip: '40cm 이상 대물은 껍질 구이도 최고급입니다.' }
           ],
-          colorTone: 'striped', svg: makeFishSvgDataUri('돌돔 · Striped Beakfish', '#cbd5e1', '#64748b', true), wikiQuery: 'Oplegnathus fasciatus'
+          svg: makeFishSvgDataUri('돌돔 · Striped Beakfish', '#cbd5e1', '#64748b', true), wikiQuery: 'Oplegnathus fasciatus'
         },
         {
           id: 'godeungeo', name: '고등어 (Chub Mackerel)', aliases: ['고등어', '고도리', '전갱이', '삼치', 'mackerel'],
@@ -657,7 +1433,7 @@
             { dish: '고등어 소금구이', diff: '쉬움', method: '내장과 피를 씻고 칼집을 내어 겉은 바삭하게 굽습니다.', tip: '무즙과 레몬을 곁들이면 비린내가 잡힙니다.' },
             { dish: '고등어 묵은지 조림', diff: '쉬움', method: '바닥에 묵은지를 깔고 간장·고춧가루 양념장으로 자작하게 졸입니다.', tip: '쌀뜨물을 넣으면 잡내가 줄어듭니다.' }
           ],
-          colorTone: 'blue', svg: makeFishSvgDataUri('고등어 · Chub Mackerel', '#38bdf8', '#0284c7', true), wikiQuery: 'Scomber japonicus'
+          svg: makeFishSvgDataUri('고등어 · Chub Mackerel', '#38bdf8', '#0284c7', true), wikiQuery: 'Scomber japonicus'
         },
         {
           id: 'haema', name: '남방해마 (Seahorse)', aliases: ['해마', '남방해마', '점해마', 'seahorse'],
@@ -667,19 +1443,19 @@
           diff: '실고기와 달리 몸을 세워 헤엄치며 꼬리로 해초를 감습니다.',
           edible: false, toxicity: '해양보호생물 (포획·소지·식용 전면 금지)', fishingBan: '연중 포획 전면 금지 — 발견 즉시 바다 방생',
           recipes: [],
-          colorTone: 'yellow', svg: makeFishSvgDataUri('해마 · 해양보호생물 방생필수', '#f59e0b', '#b45309', false), wikiQuery: 'Hippocampus kuda'
+          svg: makeFishSvgDataUri('해마 · 해양보호생물 방생필수', '#f59e0b', '#b45309', false), wikiQuery: 'Hippocampus kuda'
         },
         {
           id: 'jwinoraemi', name: '쥐노래미 / 놀래미 (Greenling)', aliases: ['쥐노래미', '놀래미', '노래미', 'greenling'],
           scientificName: 'Hexagrammos otakii', category: '저서어류', averageSize: '20~40cm',
           habitat: '방파제·갯바위 바닥층', features: '황갈색~적갈색 몸통에 5줄의 옆줄이 있으며 길고 부드러운 등지느러미를 가집니다.',
           bodyColor: '황갈색·암갈색 얼룩 보호색', fins: '깊게 패인 긴 등지느러미', head: '눈 위 작은 피질 돌기 1쌍',
-          diff: '우럭과 달리 아가미와 등지느러미에 찌르는 강한 독/가시가 약하고 체형이 가늘며 깁니다.',
+          diff: '우럭과 달리 아가미와 등지느러미 가시가 약하고 체형이 가늘며 깁니다.',
           edible: true, toxicity: '독성 없음', fishingBan: '금어기 11/1 ~ 12/31 · 금지체장 20cm 이하 금지',
           recipes: [
             { dish: '놀래미 맑은 탕 / 구이', diff: '쉬움', method: '비늘이 작아 칼등으로 긁어낸 뒤 구이나 탕으로 끓입니다.', tip: '11~12월 금어기에는 반드시 방생하세요!' }
           ],
-          colorTone: 'brown', svg: makeFishSvgDataUri('쥐노래미(놀래미) · Greenling', '#d97706', '#92400e', true), wikiQuery: 'Hexagrammos otakii'
+          svg: makeFishSvgDataUri('쥐노래미(놀래미) · Greenling', '#d97706', '#92400e', true), wikiQuery: 'Hexagrammos otakii'
         },
         {
           id: 'mangdugeo', name: '문절망둑 / 망둥어 (Goby)', aliases: ['망둥어', '망둑어', '문절망둑', 'goby'],
@@ -689,9 +1465,9 @@
           diff: '초보자 방파제 원투낚시에서 가장 흔히 잡히는 온순한 바닥 어종입니다.',
           edible: true, toxicity: '독성 없음', fishingBan: '금어기 없음',
           recipes: [
-            { dish: '망둥어 튀김·구이', diff: '쉬움', method: '내장과 머리를 제거한 뒤 튀김옷을 입혀 바삭하게 튀깁니다.', tip: '살이 담백하고 가시가 적어 아이들 반찬으로도 좋습니다.' }
+            { dish: '망둥어 튀김·구이', diff: '쉬움', method: '내장과 머리를 제거한 뒤 튀김옷을 입혀 바삭하게 튀깁니다.', tip: '살이 담백하고 가시가 적어 반찬으로 좋습니다.' }
           ],
-          colorTone: 'brown', svg: makeFishSvgDataUri('문절망둑(망둥어) · Goby', '#94a3b8', '#64748b', true), wikiQuery: 'Acanthogobius flavimanus'
+          svg: makeFishSvgDataUri('문절망둑(망둥어) · Goby', '#94a3b8', '#64748b', true), wikiQuery: 'Acanthogobius flavimanus'
         }
       ];
 
@@ -717,48 +1493,19 @@
         { id: 's13', region: '남해', name: '여수 종포·소호동 해양공원 선착장', location: '전남 여수시 종화동', targetFish: ['갈치', '갑오징어', '볼락'], tips: '야간 가로등·안전 난간 구비 입문 명소.', lat: 34.7388, lng: 127.7429 },
         { id: 's4', region: '제주', name: '제주시 차귀도 선상·갯바위', location: '제주시 한경면', targetFish: ['참돔', '다금바리', '한치'], tips: '조류가 세므로 무거운 봉돌 준비.', lat: 33.3114, lng: 126.1462 },
         { id: 's8', region: '제주', name: '서귀포 모슬포항 방파제', location: '제주 서귀포시 대정읍', targetFish: ['방어', '부시리', '벵에돔'], tips: '에깅과 찌낚시 모두 조황 우수.', lat: 33.2165, lng: 126.2512 },
-        { id: 's22', region: '제주', name: '제주시 탑동·사라봉 방파제', location: '제주 제주시 건입동', targetFish: ['한치', '전갱이', '고등어'], tips: '공항 근접 도심 생활낚시 추천 포인트.', lat: 33.5194, lng: 126.5297 },
+        { id: 's22', region: '제주', name: '제주시 탑동·사라봉 방파제', location: '제주 제주시 건입동', targetFish: ['한치', '전갱이', '고등어'], tips: '도심 근접 생활낚시 추천 포인트.', lat: 33.5194, lng: 126.5297 },
         { id: 's23', region: '제주', name: '서귀포 성산포항 방파제', location: '제주 서귀포시 성산읍', targetFish: ['무늬오징어', '전갱이', '고등어'], tips: '내항 포인트로 초보 에깅 입문 적합.', lat: 33.4733, lng: 126.9317 }
       ];
 
       var COASTAL_STATIONS = [
         { name: '인천 앞바다', lat: 37.45, lng: 126.55 },
         { name: '속초 앞바다', lat: 38.21, lng: 128.62 },
-        { name: '강릉 앞바다', lat: 37.77, lng: 128.95 },
         { name: '태안 앞바다', lat: 36.74, lng: 126.12 },
         { name: '포항 앞바다', lat: 36.04, lng: 129.42 },
-        { name: '울산 앞바다', lat: 35.56, lng: 129.42 },
         { name: '부산 앞바다', lat: 35.10, lng: 129.10 },
-        { name: '통영 앞바다', lat: 34.82, lng: 128.43 },
         { name: '여수 앞바다', lat: 34.73, lng: 127.75 },
         { name: '목포 앞바다', lat: 34.78, lng: 126.35 },
         { name: '제주 앞바다', lat: 33.52, lng: 126.53 }
-      ];
-
-      var WEATHER_STATIONS = [
-        { name: '서울', lat: 37.5665, lng: 126.9780, isCoastal: false },
-        { name: '인천', lat: 37.4563, lng: 126.7052, isCoastal: true },
-        { name: '수원', lat: 37.2636, lng: 127.0286, isCoastal: false },
-        { name: '춘천', lat: 37.8813, lng: 127.7298, isCoastal: false },
-        { name: '속초', lat: 38.2045, lng: 128.5912, isCoastal: true },
-        { name: '강릉', lat: 37.7519, lng: 128.8761, isCoastal: true },
-        { name: '태안', lat: 36.7456, lng: 126.2981, isCoastal: true },
-        { name: '보령', lat: 36.3335, lng: 126.6128, isCoastal: true },
-        { name: '대전', lat: 36.3504, lng: 127.3845, isCoastal: false },
-        { name: '청주', lat: 36.6424, lng: 127.4890, isCoastal: false },
-        { name: '군산', lat: 35.9677, lng: 126.7366, isCoastal: true },
-        { name: '전주', lat: 35.8242, lng: 127.1480, isCoastal: false },
-        { name: '광주', lat: 35.1595, lng: 126.8526, isCoastal: false },
-        { name: '목포', lat: 34.8118, lng: 126.3922, isCoastal: true },
-        { name: '여수', lat: 34.7604, lng: 127.6622, isCoastal: true },
-        { name: '통영', lat: 34.8544, lng: 128.4331, isCoastal: true },
-        { name: '창원', lat: 35.2279, lng: 128.6811, isCoastal: true },
-        { name: '부산', lat: 35.1587, lng: 129.1604, isCoastal: true },
-        { name: '울산', lat: 35.5384, lng: 129.3114, isCoastal: true },
-        { name: '포항', lat: 36.0190, lng: 129.3435, isCoastal: true },
-        { name: '대구', lat: 35.8714, lng: 128.6014, isCoastal: false },
-        { name: '제주', lat: 33.4996, lng: 126.5312, isCoastal: true },
-        { name: '서귀포', lat: 33.2541, lng: 126.5600, isCoastal: true }
       ];
 
       var BANS_DATA = [
@@ -793,11 +1540,13 @@
       ];
 
       var state = {
-        activeLocation: { lat: 35.1587, lng: 129.1604, label: '대한민국 기기 위치 탐색 중...', detail: '', source: 'default' },
+        activeLocation: { lat: 35.1587, lng: 129.1604, label: '위치 탐색 중...', detail: '', source: 'default' },
         weather: null,
-        weatherSeq: 0,
         tide: null,
+        chartTab: 'overview',
+        selectedHourIdx: 0,
         nearbySpots: [],
+        maxMinutesFilter: 60,
         liveTracking: false,
         watchId: null,
         wheelUnlocked: false,
@@ -813,7 +1562,10 @@
         messages: {},
         diary: [],
         db: null,
-        authUser: null
+        auth: null,
+        authUser: null,
+        unsubRooms: null,
+        unsubMsgs: null
       };
       localStorage.setItem('il_uid', state.uid);
       localStorage.setItem('il_nick', state.nick);
@@ -841,6 +1593,13 @@
         var map = {};
         fmt.formatToParts(d).forEach(function (p) { if (p.type !== 'literal') map[p.type] = p.value; });
         return map;
+      }
+
+      function getKstWindowLabel(hourNum) {
+        if (hourNum >= 5 && hourNum <= 8) return '일출 피딩 골든타임';
+        if (hourNum >= 9 && hourNum <= 15) return '주간 생활낚시 시간대';
+        if (hourNum >= 16 && hourNum <= 19) return '일몰 피딩 골든타임';
+        return '야간 낚시 · 안전등 필수';
       }
 
       function distKm(a, b) {
@@ -945,9 +1704,9 @@
           });
         }
         wins.sort(function (a, b) { return b.score - a.score; });
-        var tip = region === '동해' ? '동해는 조차가 작아 파고(너울)와 바람 방향 확인이 핵심입니다.' :
+        var tip = region === '동해' ? '동해는 조차가 작아 너울과 바람 확인이 핵심입니다.' :
           spring >= 0.65 ? '대조기(사리)에는 조류가 강하므로 만조 전 퇴로를 확보하세요.' :
-          '조류가 완만한 시기로 초보자 찌·원투 낚시에 가장 알맞습니다.';
+          '조류가 완만한 시기로 초보자 찌·원투 낚시에 알맞습니다.';
         return {
           region: region, multaeName: labels[idx], phaseTxt: phaseTxt, tidePercent: Math.round(normH * 100),
           events: events, nextText: nextText, tip: tip, windows: wins.slice(0, 3),
@@ -974,94 +1733,32 @@
         return { label: label, detail: [city, dist, road].filter(Boolean).join(' · ') };
       }
 
-      async function fetchPointForecast(targetLat, targetLng) {
-        var fUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + targetLat + '&longitude=' + targetLng +
+      async function fetchWeather(lat, lng) {
+        var fUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng +
           '&current=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
-          '&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m' +
+          '&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
           '&wind_speed_unit=ms&timezone=Asia%2FSeoul&forecast_days=2&models=kma_seamless';
+        var modelLabel = '기상청(KMA) 정밀 보정 KST';
         var fData = await fetchJsonSafe(fUrl);
-        if (!fData || !fData.current || fData.current.temperature_2m == null) {
+        if (!fData || !fData.current) {
+          modelLabel = '실시간 KST 해양 기상';
           fData = await fetchJsonSafe(fUrl.replace('&models=kma_seamless', ''));
         }
-        return (fData && fData.current && fData.current.temperature_2m != null) ? fData : null;
-      }
-
-      async function fetchWeather(lat, lng) {
-        var fData = await fetchPointForecast(lat, lng);
-        var weatherSourceNote = '선택 지역 기상청(KMA) 실시간 보정';
-        if (!fData) {
-          var sortedStations = WEATHER_STATIONS.slice().sort(function (a, b) {
-            return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
-          });
-          for (var si = 0; si < Math.min(3, sortedStations.length); si++) {
-            var st = sortedStations[si];
-            var candidate = await fetchPointForecast(st.lat, st.lng);
-            if (candidate) {
-              fData = candidate;
-              var stDist = Math.max(1, Math.round(distKm({ lat: lat, lng: lng }, st)));
-              weatherSourceNote = '가까운 ' + st.name + ' 관측지 (약 ' + stDist + 'km) 실시간 기상';
-              break;
-            }
-          }
-        }
-
         var marineNote = '선택 좌표 해상 직측';
-        var mData = await fetchJsonSafe(
-          'https://marine-api.open-meteo.com/v1/marine?latitude=' + lat + '&longitude=' + lng +
-          '&current=wave_height,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2'
-        );
-        if (!mData || !mData.current || (mData.current.wave_height == null && mData.current.sea_surface_temperature == null)) {
-          var sortedCoastal = COASTAL_STATIONS.slice().sort(function (a, b) {
-            return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
-          });
-          for (var ci = 0; ci < Math.min(2, sortedCoastal.length); ci++) {
-            var cst = sortedCoastal[ci];
-            var mcRes = await fetchJsonSafe(
-              'https://marine-api.open-meteo.com/v1/marine?latitude=' + cst.lat + '&longitude=' + cst.lng +
-              '&current=wave_height,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2'
-            );
-            if (mcRes && mcRes.current && (mcRes.current.wave_height != null || mcRes.current.sea_surface_temperature != null)) {
-              mData = mcRes;
-              marineNote = '인근 해역(' + cst.name + ' · 약 ' + Math.max(1, Math.round(distKm({ lat: lat, lng: lng }, cst))) + 'km) 기준';
-              break;
-            }
+        var mUrl = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + lat + '&longitude=' + lng +
+          '&current=wave_height,wave_period,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2';
+        var mData = await fetchJsonSafe(mUrl);
+        if (!mData || !mData.current || mData.current.wave_height == null) {
+          var nearest = COASTAL_STATIONS.slice().sort(function (a, b) { return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b); })[0];
+          if (nearest) {
+            marineNote = '인근 해역(' + nearest.name + ') 기준';
+            mData = await fetchJsonSafe('https://marine-api.open-meteo.com/v1/marine?latitude=' + nearest.lat + '&longitude=' + nearest.lng +
+              '&current=wave_height,wave_period,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2');
           }
         }
-
+        var cur = (fData && fData.current) || { temperature_2m: 14.5, relative_humidity_2m: 60, precipitation_probability: 10, weather_code: 1, wind_speed_10m: 3.1, wind_direction_10m: 180, wind_gusts_10m: 4.8 };
+        var mc = (mData && mData.current) || { wave_height: 0.4, wave_period: 4.2, sea_surface_temperature: 14.8 };
         var kst = getKstParts();
-        var monthNum = Number(kst.month || 5);
-        var hourNum = Number(kst.hour || 12);
-        var nearestStation = WEATHER_STATIONS.slice().sort(function (a, b) {
-          return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
-        })[0];
-        var nearestCoastalFallback = COASTAL_STATIONS.slice().sort(function (a, b) {
-          return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
-        })[0];
-        if (!fData) {
-          var nDist = Math.max(1, Math.round(distKm({ lat: lat, lng: lng }, nearestStation)));
-          weatherSourceNote = '인근 ' + nearestStation.name + ' (약 ' + nDist + 'km) KST 기상 기준';
-        }
-        if ((!mData || !mData.current) && nearestCoastalFallback) {
-          marineNote = '가까운 ' + nearestCoastalFallback.name + ' 기준';
-        }
-
-        var monthlyTemps = [1.5, 3.5, 8.5, 14.0, 18.8, 22.8, 26.2, 27.2, 22.8, 16.8, 10.2, 3.8];
-        var monthlySst = [9.5, 9.0, 10.5, 13.0, 16.0, 19.5, 23.0, 25.0, 23.0, 19.5, 15.5, 11.8];
-        var mIdx = Math.max(0, Math.min(11, monthNum - 1));
-        var seasonalTemp = Number((monthlyTemps[mIdx] + (36.5 - nearestStation.lat) * 0.9 + Math.sin(((hourNum - 9) / 24) * 2 * Math.PI) * 2.5).toFixed(1));
-        var seasonalSst = Number((monthlySst[mIdx] + (35.5 - nearestCoastalFallback.lat) * 0.7).toFixed(1));
-
-        var cur = (fData && fData.current) || {
-          temperature_2m: seasonalTemp,
-          relative_humidity_2m: 62,
-          precipitation_probability: 10,
-          weather_code: 1,
-          wind_speed_10m: nearestStation.isCoastal ? 3.3 : 2.6,
-          wind_direction_10m: 225,
-          wind_gusts_10m: 4.5
-        };
-        var mc = (mData && mData.current) || { wave_height: 0.4, sea_surface_temperature: seasonalSst };
-
         var curPrefix = kst.year + '-' + kst.month + '-' + kst.day + 'T' + kst.hour;
         var times = (fData && fData.hourly && fData.hourly.time) || [];
         var startIdx = times.findIndex(function (t) { return t.indexOf(curPrefix) === 0; });
@@ -1070,30 +1767,33 @@
         for (var i = 0; i < 12; i++) {
           var idx = startIdx + i;
           var tStr = times[idx];
-          var hNum = tStr ? Number(tStr.slice(11, 13)) : (hourNum + i) % 24;
-          var diurnal = Math.sin(((hNum - 9) / 24) * 2 * Math.PI) * 1.4;
+          var hNum = tStr ? Number(tStr.slice(11, 13)) : (Number(kst.hour) + i) % 24;
           hourly.push({
             hourNum: hNum,
             label: String(hNum).padStart(2, '0') + '시',
-            temp: fData && fData.hourly && fData.hourly.temperature_2m[idx] != null ? Number(fData.hourly.temperature_2m[idx]) : Number((cur.temperature_2m + diurnal).toFixed(1)),
-            wind: fData && fData.hourly && fData.hourly.wind_speed_10m[idx] != null ? Number(fData.hourly.wind_speed_10m[idx]) : Number(cur.wind_speed_10m),
-            rain: fData && fData.hourly && fData.hourly.precipitation_probability[idx] != null ? Number(fData.hourly.precipitation_probability[idx]) : 10,
-            wave: mData && mData.hourly && mData.hourly.wave_height[idx] != null ? Number(mData.hourly.wave_height[idx]) : Number(mc.wave_height != null ? mc.wave_height : 0.4),
-            sst: mData && mData.hourly && mData.hourly.sea_surface_temperature[idx] != null ? Number(mData.hourly.sea_surface_temperature[idx]) : Number(mc.sea_surface_temperature != null ? mc.sea_surface_temperature : seasonalSst)
+            temp: fData && fData.hourly ? Number(fData.hourly.temperature_2m[idx] || cur.temperature_2m) : Number(cur.temperature_2m),
+            wind: fData && fData.hourly ? Number(fData.hourly.wind_speed_10m[idx] || cur.wind_speed_10m) : Number(cur.wind_speed_10m),
+            gust: fData && fData.hourly && fData.hourly.wind_gusts_10m ? Number(fData.hourly.wind_gusts_10m[idx] || cur.wind_gusts_10m) : Number(cur.wind_gusts_10m || cur.wind_speed_10m),
+            rain: fData && fData.hourly ? Number(fData.hourly.precipitation_probability[idx] || 0) : 10,
+            code: fData && fData.hourly && fData.hourly.weather_code ? Number(fData.hourly.weather_code[idx] || cur.weather_code) : Number(cur.weather_code),
+            wave: mData && mData.hourly && mData.hourly.wave_height[idx] != null ? Number(mData.hourly.wave_height[idx]) : Number(mc.wave_height || 0.4),
+            sst: mData && mData.hourly && mData.hourly.sea_surface_temperature[idx] != null ? Number(mData.hourly.sea_surface_temperature[idx]) : Number(mc.sea_surface_temperature || 14.8)
           });
         }
         return {
-          tempC: Number(cur.temperature_2m != null ? cur.temperature_2m : seasonalTemp),
-          humidity: Number(cur.relative_humidity_2m != null ? cur.relative_humidity_2m : 60),
-          rainProb: Number(cur.precipitation_probability != null ? cur.precipitation_probability : 0),
-          code: Number(cur.weather_code != null ? cur.weather_code : 1),
-          windMs: Number(cur.wind_speed_10m != null ? cur.wind_speed_10m : 3.0),
-          windDeg: Number(cur.wind_direction_10m != null ? cur.wind_direction_10m : 180),
-          gustMs: Number(cur.wind_gusts_10m != null ? cur.wind_gusts_10m : (cur.wind_speed_10m || 3.0) * 1.35),
+          tempC: Number(cur.temperature_2m || 14.5),
+          humidity: Number(cur.relative_humidity_2m || 60),
+          rainProb: Number(cur.precipitation_probability || 0),
+          code: Number(cur.weather_code || 1),
+          windMs: Number(cur.wind_speed_10m || 3),
+          windDeg: Number(cur.wind_direction_10m || 0),
+          gustMs: Number(cur.wind_gusts_10m || cur.wind_speed_10m || 4),
           waveM: Number(mc.wave_height != null ? mc.wave_height : 0.4),
-          sstC: Number(mc.sea_surface_temperature != null ? mc.sea_surface_temperature : seasonalSst),
+          wavePeriod: Number(mc.wave_period || 4.2),
+          sstC: Number(mc.sea_surface_temperature != null ? mc.sea_surface_temperature : 14.8),
           marineNote: marineNote,
-          weatherSourceNote: weatherSourceNote,
+          modelLabel: modelLabel,
+          observedKst: kst.month + '/' + kst.day + ' ' + kst.hour + ':' + kst.minute + ' KST',
           hourly: hourly
         };
       }
@@ -1124,7 +1824,7 @@
             candidates.push({
               id: 'osm_' + el.id, name: nm, address: (el.tags['addr:full'] || el.tags['addr:city'] || '주변 탐색'),
               lat: lt, lng: ln, kind: isFish ? 'spot' : 'park',
-              targetFish: isFish ? '우럭·망둥어·고등어·놀래미' : '허용 수변 산책·캐스팅 감각 연습',
+              targetFish: isFish ? '우럭·망둥어·고등어·놀래미' : '수변 산책 및 캐스팅·휴식',
               tip: isFish ? '안전 난간·구명조끼 착용 후 내항 구간 추천' : '주변 낚시터 부족 시 추천되는 공원·수변 거점 (허용 구간 표지판 확인)'
             });
           });
@@ -1179,98 +1879,217 @@
         return dedup.slice(0, 9);
       }
 
+      function renderStarIcons(stars) {
+        var html = '';
+        for (var i = 1; i <= 5; i++) {
+          var fill = stars >= i ? '#36D6E8' : (stars >= i - 0.5 ? 'url(#halfStar)' : 'rgba(30,74,109,0.7)');
+          html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + fill + '" stroke="#36D6E8" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+        }
+        return '<svg width="0" height="0" style="position:absolute;"><defs><linearGradient id="halfStar"><stop offset="50%" stop-color="#36D6E8"/><stop offset="50%" stop-color="rgba(30,74,109,0.7)"/></linearGradient></defs></svg>' + html;
+      }
+
+      function renderChart() {
+        var w = state.weather;
+        if (!w || !w.hourly || !w.hourly.length) return;
+        var pts = w.hourly;
+        var idx = Math.min(state.selectedHourIdx, pts.length - 1);
+        var pt = pts[idx];
+        var tab = state.chartTab;
+
+        document.getElementById('hourly-hud').innerHTML =
+          '<div style="display:flex;align-items:center;gap:8px;font-weight:700;">' +
+          '<span class="font-mono text-cyan">' + pt.label + ' KST</span><span>' + weatherDesc(pt.code) + '</span></div>' +
+          '<div class="font-mono" style="display:flex;flex-wrap:wrap;gap:14px;">' +
+          '<span>풍량 <strong class="text-cyan">' + pt.wind.toFixed(1) + 'm/s</strong></span>' +
+          '<span>파고 <strong class="text-cyan">' + pt.wave.toFixed(2) + 'm</strong></span>' +
+          '<span>수온 <strong class="text-aqua">' + pt.sst.toFixed(1) + '℃</strong></span>' +
+          '<span>기온 <strong style="color:#fcd34d;">' + pt.temp.toFixed(1) + '℃</strong></span>' +
+          '<span>강수 <strong class="text-aqua">' + pt.rain + '%</strong></span></div>';
+
+        var W = 740, H = 205, PL = 42, PR = 20, PT = 18, PB = 28;
+        var vals1 = [], vals2 = [], minV = 0, maxV = 12, label1 = '', label2 = '', c1 = '#36D6E8', c2 = '#4B9FE8', thresh = null;
+        if (tab === 'wind') {
+          vals1 = pts.map(function (p) { return p.wind; });
+          vals2 = pts.map(function (p) { return p.gust; });
+          maxV = Math.max(10, Math.ceil(Math.max.apply(null, vals1.concat(vals2)) / 2) * 2);
+          label1 = '풍속(m/s)'; label2 = '돌풍(m/s)'; thresh = 6;
+        } else if (tab === 'wave') {
+          vals1 = pts.map(function (p) { return p.wave; });
+          maxV = Math.max(1.5, Math.ceil(Math.max.apply(null, vals1) * 2) / 2);
+          label1 = '파고(m)'; thresh = 1.0;
+        } else if (tab === 'temp') {
+          vals1 = pts.map(function (p) { return p.sst; });
+          vals2 = pts.map(function (p) { return p.temp; });
+          var allT = vals1.concat(vals2);
+          minV = Math.floor(Math.min.apply(null, allT) - 2);
+          maxV = Math.ceil(Math.max.apply(null, allT) + 2);
+          label1 = '수온(℃)'; label2 = '기온(℃)';
+        } else if (tab === 'rain') {
+          vals1 = pts.map(function (p) { return p.rain; });
+          maxV = 100; label1 = '강수확률(%)'; c1 = '#4B9FE8';
+        } else {
+          vals1 = pts.map(function (p) { return p.wind; });
+          vals2 = pts.map(function (p) { return p.wave * 5; });
+          maxV = Math.max(12, Math.ceil(Math.max.apply(null, vals1.concat(vals2)) / 2) * 2);
+          label1 = '풍속(m/s)'; label2 = '파고×5환산'; thresh = 6;
+        }
+
+        function mapPts(arr) {
+          return arr.map(function (v, i) {
+            var x = PL + (i / Math.max(1, arr.length - 1)) * (W - PL - PR);
+            var ratio = maxV === minV ? 0.5 : (v - minV) / (maxV - minV);
+            var y = PT + (1 - Math.max(0, Math.min(1, ratio))) * (H - PT - PB);
+            return { x: Number(x.toFixed(1)), y: Number(y.toFixed(1)) };
+          });
+        }
+
+        var p1 = mapPts(vals1);
+        var p2 = vals2.length ? mapPts(vals2) : [];
+        var line1 = p1.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p.x + ' ' + p.y; }).join(' ');
+        var area1 = line1 + ' L ' + p1[p1.length - 1].x + ' ' + (H - PB) + ' L ' + p1[0].x + ' ' + (H - PB) + ' Z';
+        var line2 = p2.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p.x + ' ' + p.y; }).join(' ');
+
+        var gridSvg = [0, 0.5, 1].map(function (f) {
+          var y = (PT + f * (H - PT - PB)).toFixed(1);
+          var lbl = (maxV - f * (maxV - minV)).toFixed(tab === 'wave' ? 1 : 0);
+          return '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="rgba(75,159,232,0.18)"/>' +
+            '<text x="' + (PL - 6) + '" y="' + (Number(y) + 3) + '" text-anchor="end" fill="#A7C2D8" font-size="10" font-family="monospace">' + lbl + '</text>';
+        }).join('');
+
+        var threshSvg = '';
+        if (thresh != null && thresh <= maxV) {
+          var ty = (PT + (1 - (thresh - minV) / (maxV - minV)) * (H - PT - PB)).toFixed(1);
+          threshSvg = '<line x1="' + PL + '" y1="' + ty + '" x2="' + (W - PR) + '" y2="' + ty + '" stroke="rgba(251,191,36,0.55)" stroke-dasharray="5 4"/>';
+        }
+
+        var dotsSvg = pts.map(function (item, i) {
+          var pt1 = p1[i], pt2 = p2[i], sel = i === idx;
+          return '<g class="chart-col-pick" data-idx="' + i + '" style="cursor:pointer;">' +
+            '<rect x="' + (pt1.x - 22) + '" y="' + PT + '" width="44" height="' + (H - PT) + '" fill="transparent"/>' +
+            (sel ? '<line x1="' + pt1.x + '" y1="' + PT + '" x2="' + pt1.x + '" y2="' + (H - PB) + '" stroke="rgba(54,214,232,0.5)"/>' : '') +
+            '<circle cx="' + pt1.x + '" cy="' + pt1.y + '" r="' + (sel ? 5 : 3) + '" fill="' + c1 + '" stroke="#061B33" stroke-width="1.5"/>' +
+            (pt2 ? '<circle cx="' + pt2.x + '" cy="' + pt2.y + '" r="' + (sel ? 4.5 : 2.5) + '" fill="' + c2 + '" stroke="#061B33" stroke-width="1.5"/>' : '') +
+            '<text x="' + pt1.x + '" y="' + (H - 8) + '" text-anchor="middle" fill="' + (sel ? '#36D6E8' : '#A7C2D8') + '" font-weight="' + (sel ? '700' : '400') + '" font-size="10" font-family="monospace">' + item.label + '</text></g>';
+        }).join('');
+
+        document.getElementById('hourly-chart-container').innerHTML =
+          '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;min-width:540px;height:auto;user-select:none;">' +
+          '<defs><linearGradient id="areaFillCyan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + c1 + '" stop-opacity="0.34"/><stop offset="100%" stop-color="' + c1 + '" stop-opacity="0.02"/></linearGradient></defs>' +
+          gridSvg + threshSvg +
+          '<path d="' + area1 + '" fill="url(#areaFillCyan)"/>' +
+          '<path d="' + line1 + '" fill="none" stroke="' + c1 + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+          (line2 ? '<path d="' + line2 + '" fill="none" stroke="' + c2 + '" stroke-width="2" stroke-dasharray="5 3" stroke-linecap="round"/>' : '') +
+          dotsSvg +
+          '<text x="' + PL + '" y="12" fill="' + c1 + '" font-size="10" font-weight="700">━ ' + label1 + '</text>' +
+          (label2 ? '<text x="' + (PL + 92) + '" y="12" fill="' + c2 + '" font-size="10">┄ ' + label2 + '</text>' : '') +
+          '</svg>';
+
+        document.getElementById('hourly-chips-grid').innerHTML = pts.map(function (item, i) {
+          return '<button type="button" class="hour-chip ' + (i === idx ? 'active' : '') + '" data-idx="' + i + '">' + item.label + '</button>';
+        }).join('');
+      }
+
       function renderHome() {
         var loc = state.activeLocation;
         var w = state.weather;
         var t = state.tide;
+        var isMap = loc.source === 'map';
+
+        document.getElementById('telemetry-loc-prefix').textContent = isMap ? '지도 선택 지역:' : '현재 기준 위치:';
         document.getElementById('active-location-pill').textContent = loc.label;
-        document.getElementById('home-location-badge').textContent = (loc.source === 'gps' ? '내 기기 GPS · ' : loc.source === 'map' ? '지도 선택 지역 · ' : '기준 위치 · ') + loc.label;
-        document.getElementById('home-region-badge').textContent = t ? (t.region + ' 권역') : '해역';
-        document.getElementById('home-hero-title').textContent = loc.label + ' 해양·날씨·물때 브리핑';
+        document.getElementById('active-region-pill').textContent = t ? ('(' + t.region + ')') : '';
+        document.getElementById('home-location-badge').textContent = isMap ? '지도 선택 지역 실시간 관측' : '현재 기기 위치 실시간 관측';
+        document.getElementById('home-location-text').textContent = loc.label + (t ? (' (' + t.region + ')') : '');
+        document.getElementById('home-hero-title').textContent = isMap ? (loc.label + ' 해양·낚시 관측 브리핑') : '오늘 내 위치 낚시·해황 추천 지수';
         document.getElementById('home-location-detail').textContent = (loc.detail || (loc.lat.toFixed(4) + ', ' + loc.lng.toFixed(4))) + (w ? (' · ' + w.marineNote) : '');
 
         if (w) {
           var score = Math.max(15, Math.min(98, Math.round(92 - Math.max(0, w.windMs - 3) * 8 - Math.max(0, w.waveM - 0.5) * 24 - (w.rainProb > 45 ? 18 : 0))));
-          var grade = score >= 80 ? '최적 출조 적합' : score >= 62 ? '양호 · 생활낚시 추천' : score >= 45 ? '보통 · 바람 주의' : '위험 · 출조 자제';
-          document.getElementById('rating-headline').textContent = grade;
-          document.getElementById('rating-score-val').textContent = score;
-          document.getElementById('rating-summary-text').textContent =
-            '풍속 ' + w.windMs.toFixed(1) + 'm/s(' + windDirLabel(w.windDeg) + '), 파고 ' + w.waveM.toFixed(1) + 'm, 수온 ' + w.sstC.toFixed(1) + '℃ 기준으로 산출된 지수입니다.';
-          document.getElementById('weather-condition-pill').textContent = weatherDesc(w.code) + ' · 습도 ' + w.humidity + '%';
-          var modelMetaEl = document.getElementById('weather-model-meta');
-          if (modelMetaEl) modelMetaEl.textContent = (w.weatherSourceNote || '대한민국 표준시(KST) 기준') + ' · ' + w.marineNote;
-          document.getElementById('metric-wind-val').textContent = w.windMs.toFixed(1) + ' m/s';
-          document.getElementById('metric-wind-sub').textContent = windDirLabel(w.windDeg) + ' · 돌풍 ' + w.gustMs.toFixed(1) + 'm/s';
-          document.getElementById('metric-wave-val').textContent = w.waveM.toFixed(1) + ' m';
-          document.getElementById('metric-wave-sub').textContent = w.waveM < 0.7 ? '잔잔함 · 방파제 양호' : w.waveM < 1.3 ? '약한 너울 · 내항 권장' : '높은 파도 · 안전 주의';
-          document.getElementById('metric-sst-val').textContent = w.sstC.toFixed(1) + ' ℃';
-          document.getElementById('metric-sst-sub').textContent = w.sstC >= 14 ? '어류 활성 양호 수온' : '저수온기 · 바닥층 공략';
-          document.getElementById('metric-air-val').textContent = w.tempC.toFixed(1) + ' ℃';
-          document.getElementById('metric-air-sub').textContent = '강수확률 ' + w.rainProb + '%';
+          var stars = Math.max(1, Math.min(5, Math.round((score / 20) * 2) / 2));
+          var grade = score >= 80 ? '매우 좋음 · 초보자 출조 최적' : score >= 62 ? '양호 · 방파제/공원 생활낚시 추천' : score >= 45 ? '보통 · 바람 방향 확인 필요' : '위험 · 연안 출조 자제';
 
-          var pts = w.hourly || [];
-          if (pts.length) {
-            var W = 680, H = 140, pad = 28;
-            var maxWind = Math.max(10, Math.max.apply(null, pts.map(function (p) { return p.wind; })));
-            var pathW = pts.map(function (p, i) {
-              var x = pad + (i / Math.max(1, pts.length - 1)) * (W - pad * 2);
-              var y = H - 24 - (p.wind / maxWind) * (H - 44);
-              return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-            }).join(' ');
-            var pathWv = pts.map(function (p, i) {
-              var x = pad + (i / Math.max(1, pts.length - 1)) * (W - pad * 2);
-              var y = H - 24 - (Math.min(2.5, p.wave) / 2.5) * (H - 44);
-              return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-            }).join(' ');
-            var ticks = pts.map(function (p, i) {
-              var x = pad + (i / Math.max(1, pts.length - 1)) * (W - pad * 2);
-              return '<text x="' + x.toFixed(1) + '" y="' + (H - 6) + '" fill="#A7C2D8" font-size="10" text-anchor="middle">' + p.label + '</text>';
-            }).join('');
-            document.getElementById('hourly-chart-container').innerHTML =
-              '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;min-width:520px;height:145px;">' +
-              '<path d="' + pathW + '" fill="none" stroke="#36D6E8" stroke-width="2.6"/>' +
-              '<path d="' + pathWv + '" fill="none" stroke="#4B9FE8" stroke-width="2" stroke-dasharray="4 3"/>' +
-              ticks +
-              '<text x="28" y="14" fill="#36D6E8" font-size="10">━ 풍속(m/s)</text>' +
-              '<text x="115" y="14" fill="#4B9FE8" font-size="10">┄ 파고(m)</text></svg>';
-          }
+          document.getElementById('home-model-meta').textContent = w.modelLabel + ' · ' + w.observedKst;
+          document.getElementById('weather-model-meta').textContent = (isMap ? '지도 선택 지역 기상' : '내 기기 위치 기상') + ' · ' + w.modelLabel + ' · ' + w.marineNote;
+          document.getElementById('star-rating-row').innerHTML = renderStarIcons(stars);
+          document.getElementById('rating-stars-val').textContent = stars.toFixed(1);
+          document.getElementById('rating-score-sub').textContent = score + '점 / 100';
+          document.getElementById('rating-headline').textContent = grade;
+          document.getElementById('rating-summary-text').textContent = '풍속 ' + w.windMs.toFixed(1) + 'm/s(' + windDirLabel(w.windDeg) + '), 파고 ' + w.waveM.toFixed(2) + 'm, 표층 수온 ' + w.sstC.toFixed(1) + '℃ 기준';
+
+          document.getElementById('hero-weather-summary').textContent = weatherDesc(w.code) + ' · ' + w.tempC.toFixed(1) + '°C';
+          document.getElementById('hero-wind-summary').textContent = windDirLabel(w.windDeg) + ' ' + w.windMs.toFixed(1) + ' m/s';
+          document.getElementById('hero-wave-ref-label').textContent = '연안 파고 (' + w.marineNote + ')';
+          document.getElementById('hero-wave-summary').textContent = w.waveM.toFixed(2) + ' m';
+
+          document.getElementById('beginner-spot-advice').textContent = score >= 62 ? '출조 가이드: 안전 난간이 있는 내항 방파제·낚시공원·수변 포인트 추천' : '출조 가이드: 바람을 등지는 내항이나 안전한 공원·실내 체험 위주로 이용하세요';
+          document.getElementById('beginner-rig-advice').textContent = score >= 62 ? '추천 채비: 원투 묶음추(청갯지렁이) 또는 카드채비·지그헤드' : '안전 수칙: 구명조끼 필수 착용 · 갯바위·테트라포드 금지';
+
+          document.getElementById('weather-condition-pill').textContent = weatherDesc(w.code) + ' · 습도 ' + w.humidity + '%';
+          document.getElementById('metric-wind-val').textContent = w.windMs.toFixed(1) + ' m/s';
+          document.getElementById('metric-wind-sub').textContent = windDirLabel(w.windDeg) + ' (' + Math.round(w.windDeg) + '°) · 돌풍 ' + w.gustMs.toFixed(1) + 'm/s';
+          document.getElementById('metric-wind-advice').textContent = w.windMs <= 5.5 ? '초보자 캐스팅과 찌 보기에 쾌적한 바람입니다.' : '바람이 강해 채비가 밀릴 수 있으니 무거운 추를 권장합니다.';
+          document.getElementById('wind-arrow-group').setAttribute('transform', 'rotate(' + Math.round(w.windDeg) + ' 32 32)');
+          document.getElementById('wind-bar-fill').style.width = Math.min(100, Math.max(8, (w.windMs / 15) * 100)) + '%';
+
+          document.getElementById('metric-air-val').textContent = w.tempC.toFixed(1) + ' °C';
+          document.getElementById('metric-air-sub').textContent = weatherDesc(w.code) + ' · 강수확률 ' + w.rainProb + '%';
+          document.getElementById('metric-air-advice').textContent = w.rainProb >= 50 ? '비 예보가 있어 방수복과 미끄럼 방지 신발을 챙기세요.' : '야외 출조 및 활동에 무난한 기온 흐름입니다.';
+          document.getElementById('air-bar-fill').style.width = Math.min(100, Math.max(8, ((w.tempC + 5) / 40) * 100)) + '%';
+
+          document.getElementById('metric-wave-val').textContent = w.waveM.toFixed(2) + ' m';
+          document.getElementById('metric-wave-sub').textContent = (w.waveM < 0.7 ? '잔잔함' : w.waveM < 1.3 ? '약한 너울' : '높은 파고') + ' · 주기 ' + w.wavePeriod.toFixed(1) + 's';
+          document.getElementById('metric-wave-advice').textContent = w.waveM < 1.0 ? '방파제 내항 초보 입문 출조에 안정적인 파고입니다.' : '월파 위험이 있으므로 외항·테트라포드 진입을 피하세요.';
+          document.getElementById('wave-bar-fill').style.width = Math.min(100, Math.max(8, (w.waveM / 2.5) * 100)) + '%';
+          var amp = Math.max(4, Math.min(24, w.waveM * 11));
+          document.getElementById('wave-area-path').setAttribute('d', 'M 0 32 Q 19 ' + (32 - amp).toFixed(1) + ' 38 32 T 76 32 L 76 56 L 0 56 Z');
+          document.getElementById('wave-line-path').setAttribute('d', 'M 0 32 Q 19 ' + (32 - amp).toFixed(1) + ' 38 32 T 76 32');
+
+          document.getElementById('metric-sst-val').textContent = w.sstC.toFixed(1) + ' °C';
+          document.getElementById('metric-sst-sub').textContent = w.sstC >= 15 ? '적온대 (어류 활성 양호)' : '저수온기 (바닥층 공략)';
+          document.getElementById('metric-sst-advice').textContent = w.sstC >= 15 ? '감성돔·참돔·전갱이·고등어 입질이 활발한 수온입니다.' : '우럭·놀래미·광어 등 저서어종 바닥 공략이 유리합니다.';
+          var sstPct = Math.min(100, Math.max(8, ((w.sstC - 4) / 26) * 100));
+          document.getElementById('sst-bar-fill').style.width = sstPct + '%';
+          var thH = Math.max(4, (sstPct / 100) * 32);
+          document.getElementById('sst-therm-rect').setAttribute('y', (41 - thH).toFixed(1));
+          document.getElementById('sst-therm-rect').setAttribute('height', thH.toFixed(1));
+
+          renderChart();
         }
 
         if (t) {
+          document.getElementById('tide-windows-title').textContent = t.region + ' 해역 기상·물때 기반 추천 낚시 시간';
           document.getElementById('tide-multae-label').textContent = t.multaeName;
           document.getElementById('tide-phase-label').textContent = t.phaseTxt + ' (' + t.tidePercent + '%)';
-          document.getElementById('tide-next-label').textContent = t.nextText;
+          document.getElementById('tide-events-inline').textContent = t.events.slice(0, 4).map(function (e) { return e.type + ' ' + e.time + '(' + e.h + 'cm)'; }).join(' / ');
           document.getElementById('tide-progress-bar').style.width = t.tidePercent + '%';
-          document.getElementById('tide-events-row').innerHTML = t.events.map(function (ev) {
-            return '<span>' + ev.type + ' <strong>' + ev.time + '</strong> (' + ev.h + 'cm)</span>';
-          }).join('') || '<span>조석 정보 없음</span>';
-          document.getElementById('best-time-banner').textContent = '가장 좋은 시간: ' + t.bestSummary;
+          document.getElementById('tide-next-label').textContent = t.nextText;
           document.getElementById('tide-tip-pill').textContent = t.tip;
           document.getElementById('recommended-windows-grid').innerHTML = t.windows.map(function (win) {
-            var cls = win.rating === '최적' ? 'badge' : win.rating === '추천' ? 'badge' : 'badge badge-warn';
-            return '<div class="glass-subcard" style="padding:14px;">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-              '<span class="font-mono" style="font-weight:800;font-size:13px;color:var(--cyan);">' + win.timeRange + '</span>' +
+            var cls = win.rating === '최적' ? 'status-tag' : win.rating === '추천' ? 'status-tag safe' : 'status-tag warn';
+            return '<div style="padding:12px;border-radius:12px;background:rgba(16,54,83,0.62);border:1px solid rgba(54,214,232,0.3);">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px;">' +
+              '<span class="font-mono" style="font-weight:800;font-size:12px;">' + win.timeRange + '</span>' +
               '<span class="' + cls + '">' + win.rating + ' ' + win.score + '점</span></div>' +
-              '<div style="font-weight:700;font-size:14px;margin-bottom:4px;">' + win.title + '</div>' +
-              '<div class="muted" style="font-size:11px;">' + win.reason + '</div></div>';
+              '<div style="font-weight:700;font-size:13px;color:var(--cyan);">' + win.title + '</div>' +
+              '<div class="muted" style="font-size:11px;margin-top:3px;">' + win.reason + '</div></div>';
           }).join('');
         }
 
         var spotsEl = document.getElementById('nearby-spots-grid');
-        if (!state.nearbySpots.length) {
-          spotsEl.innerHTML = '<div class="glass-subcard muted" style="padding:16px;">반경 1시간 이내 장소 탐색 중이거나 오프라인 상태입니다.</div>';
+        var visibleSpots = state.nearbySpots.filter(function (s) { return s.driveMin <= state.maxMinutesFilter; });
+        if (!visibleSpots.length) {
+          spotsEl.innerHTML = '<div class="glass-subcard muted" style="padding:16px;">선택한 이동 시간 내 추천 장소를 탐색 중이거나 오프라인 상태입니다.</div>';
         } else {
-          spotsEl.innerHTML = state.nearbySpots.map(function (s) {
+          spotsEl.innerHTML = visibleSpots.map(function (s) {
             var isPark = s.kind === 'park';
-            return '<div class="glass-subcard" style="padding:14px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;">' +
-              '<div><div style="display:flex;justify-content:space-between;gap:6px;margin-bottom:6px;">' +
-              '<span class="' + (isPark ? 'badge badge-park' : 'badge') + '">' + (isPark ? '주변 공원·수변 추천' : '공식 낚시 포인트') + '</span>' +
-              '<span class="font-mono muted" style="font-size:11px;">차량 약 ' + s.driveMin + '분 (' + s.distKm + 'km)</span></div>' +
+            return '<div class="glass-subcard" style="padding:15px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">' +
+              '<div><div style="display:flex;justify-content:space-between;gap:6px;margin-bottom:7px;">' +
+              '<span class="' + (isPark ? 'status-tag park' : 'status-tag') + '">' + (isPark ? '주변 공원·수변 추천' : '공식 낚시 포인트') + '</span>' +
+              '<span class="font-mono text-cyan" style="font-size:11px;font-weight:700;">차량 약 ' + s.driveMin + '분 (' + s.distKm + 'km)</span></div>' +
               '<div style="font-weight:800;font-size:15px;margin-bottom:3px;">' + escapeHtml(s.name) + '</div>' +
               '<div class="muted" style="font-size:11px;margin-bottom:6px;">' + escapeHtml(s.address) + '</div>' +
-              '<div style="font-size:12px;color:#dbeafe;"><strong>대상어·특징:</strong> ' + escapeHtml(s.targetFish) + '</div>' +
-              '<div class="muted" style="font-size:11px;margin-top:4px;">' + escapeHtml(s.tip) + '</div></div>' +
+              '<div style="font-size:12px;"><strong>대상어·특징:</strong> <span class="muted">' + escapeHtml(s.targetFish) + '</span></div>' +
+              '<div class="muted" style="font-size:11px;margin-top:4px;line-height:1.45;">' + escapeHtml(s.tip) + '</div></div>' +
               '<button type="button" class="btn-aqua focus-spot-btn" data-lat="' + s.lat + '" data-lng="' + s.lng + '" data-name="' + escapeHtml(s.name) + '" style="font-size:12px;">이 지점으로 기준 이동</button></div>';
           }).join('');
         }
@@ -1278,45 +2097,47 @@
         var mapSum = document.getElementById('map-sync-summary');
         if (mapSum && w && t) {
           mapSum.innerHTML =
-            '<div class="glass-subcard" style="padding:14px;"><div class="muted" style="font-size:11px;">선택 지역 기상</div><div style="font-weight:800;margin:4px 0;">' + escapeHtml(loc.label) + '</div><div class="muted" style="font-size:12px;">풍속 ' + w.windMs.toFixed(1) + 'm/s · 파고 ' + w.waveM.toFixed(1) + 'm · 수온 ' + w.sstC.toFixed(1) + '℃</div></div>' +
-            '<div class="glass-subcard" style="padding:14px;"><div class="muted" style="font-size:11px;">지역 물때 · 추천 시간</div><div style="font-weight:800;color:var(--cyan);margin:4px 0;">' + t.multaeName + ' (' + t.phaseTxt + ')</div><div class="muted" style="font-size:12px;">' + t.bestSummary + '</div></div>' +
-            '<div class="glass-subcard" style="padding:14px;"><div class="muted" style="font-size:11px;">추천 공원/낚시터</div><div style="font-weight:800;margin:4px 0;">' + (state.nearbySpots[0] ? escapeHtml(state.nearbySpots[0].name) : '탐색 중') + '</div><div class="muted" style="font-size:12px;">' + (state.nearbySpots[0] ? ('차량 약 ' + state.nearbySpots[0].driveMin + '분') : '') + '</div></div>';
+            '<div class="glass-subcard" style="padding:14px;"><div class="muted" style="font-size:11px;">선택 지역 실시간 기상</div><div style="font-weight:800;margin:4px 0;">' + escapeHtml(loc.label) + '</div><div class="muted font-mono" style="font-size:12px;">풍속 ' + w.windMs.toFixed(1) + 'm/s · 파고 ' + w.waveM.toFixed(2) + 'm · 수온 ' + w.sstC.toFixed(1) + '°C</div></div>' +
+            '<div class="glass-subcard" style="padding:14px;"><div class="muted" style="font-size:11px;">지역 물때 · 추천 시간</div><div class="text-cyan" style="font-weight:800;margin:4px 0;">' + t.multaeName + ' (' + t.phaseTxt + ')</div><div class="muted" style="font-size:12px;">' + t.bestSummary + '</div></div>' +
+            '<div class="glass-subcard" style="padding:14px;"><div class="muted" style="font-size:11px;">최단 추천 낚시터/공원</div><div style="font-weight:800;margin:4px 0;">' + (state.nearbySpots[0] ? escapeHtml(state.nearbySpots[0].name) : '탐색 중') + '</div><div class="muted font-mono" style="font-size:12px;">' + (state.nearbySpots[0] ? ('차량 약 ' + state.nearbySpots[0].driveMin + '분') : '') + '</div></div>';
         }
       }
 
       function renderSeasonalRegulations() {
         var kst = getKstParts();
         var m = Number(kst.month), d = Number(kst.day);
-        document.getElementById('seasonal-month-badge').textContent = m + '월 ' + d + '일 (KST) 적용';
+        document.getElementById('seasonal-month-badge').textContent = '한국 표준시 ' + m + '월 ' + d + '일 기준 자동 선별';
         var curMD = m * 100 + d;
         var activeBans = BANS_DATA.filter(function (b) {
           var s = b.sm * 100 + b.sd, e = b.em * 100 + b.ed;
           return s <= e ? (curMD >= s && curMD <= e) : (curMD >= s || curMD <= e);
         });
         document.getElementById('seasonal-bans-list').innerHTML = activeBans.map(function (b) {
-          return '<div style="padding:8px;border-radius:10px;background:rgba(136,19,55,0.28);border:1px solid rgba(251,113,133,0.35);">' +
-            '<strong>' + b.species + '</strong> <span class="font-mono">(' + b.period + ')</span>' +
+          return '<div style="padding:9px;border-radius:10px;background:rgba(136,19,55,0.28);border:1px solid rgba(251,113,133,0.3);">' +
+            '<strong>' + b.species + '</strong> <span class="font-mono" style="color:#fda4af;">(' + b.period + ')</span>' +
             '<div class="muted" style="font-size:11px;margin-top:2px;">' + b.note + '</div></div>';
-        }).join('') || '<div class="muted">현재 집중 금어기 어종 없음 (연중 명태 제외)</div>';
+        }).join('') || '<div class="muted">현재 집중 금어기 어종 없음 (연중 명태 금지)</div>';
+
         var activeSizes = MIN_SIZES_DATA.filter(function (s) { return s.months.indexOf(m) >= 0; });
         document.getElementById('seasonal-sizes-list').innerHTML = activeSizes.map(function (s) {
-          return '<div style="padding:8px;border-radius:10px;background:rgba(120,53,15,0.28);border:1px solid rgba(251,191,36,0.35);">' +
-            '<strong>' + s.species + ' · ' + s.minCm + 'cm 이하 금지</strong>' +
+          return '<div style="padding:9px;border-radius:10px;background:rgba(120,53,15,0.28);border:1px solid rgba(251,191,36,0.3);">' +
+            '<strong>' + s.species + ' · <span class="font-mono" style="color:#fcd34d;">' + s.minCm + 'cm 이하 방생</span></strong>' +
             '<div class="muted" style="font-size:11px;margin-top:2px;">' + s.note + '</div></div>';
         }).join('');
+
         document.getElementById('marine-safety-list').innerHTML = SAFETY_RULES.map(function (r) {
-          return '<div style="padding:8px;border-radius:10px;background:rgba(16,54,83,0.55);border:1px solid rgba(54,214,232,0.25);">' +
+          return '<div style="padding:9px;border-radius:10px;background:rgba(16,54,83,0.52);border:1px solid rgba(54,214,232,0.26);">' +
             '<strong class="text-cyan">' + r.title + '</strong>' +
             '<div class="muted" style="font-size:11px;margin-top:2px;">' + r.desc + '</div></div>';
         }).join('');
+
         document.getElementById('guide-full-bans').innerHTML = BANS_DATA.map(function (b) {
-          return '<div class="glass-subcard" style="padding:10px;font-size:12px;">' +
-            '<strong>' + b.species + '</strong> · <span class="text-cyan">' + b.period + '</span> · <span class="muted">' + b.min + '</span></div>';
+          return '<div class="glass-subcard" style="padding:11px;font-size:12px;">' +
+            '<strong>' + b.species + '</strong> · <span class="text-cyan font-mono">' + b.period + '</span> · <span class="muted">' + b.min + '</span></div>';
         }).join('');
       }
 
       async function setActiveLocation(lat, lng, label, detail, source) {
-        var reqSeq = ++state.weatherSeq;
         state.activeLocation = { lat: lat, lng: lng, label: label || '선택 지역', detail: detail || '', source: source || 'map' };
         if (state.map && state.activeMarker) {
           state.activeMarker.setLatLng([lat, lng]);
@@ -1325,13 +2146,10 @@
         state.tide = calculateTide({ lat: lat, lng: lng }, state.weather);
         renderHome();
         var w = await fetchWeather(lat, lng);
-        if (reqSeq !== state.weatherSeq) return;
         state.weather = w;
         state.tide = calculateTide({ lat: lat, lng: lng }, w);
         renderHome();
-        var spots = await discoverNearbySpotsAndParks({ lat: lat, lng: lng });
-        if (reqSeq !== state.weatherSeq) return;
-        state.nearbySpots = spots;
+        state.nearbySpots = await discoverNearbySpotsAndParks({ lat: lat, lng: lng });
         renderHome();
         updateMapMarkers();
       }
@@ -1346,7 +2164,7 @@
         state.activeMarker = L.marker([loc.lat, loc.lng]).addTo(state.map).bindPopup('현재 기준 위치');
         state.map.on('click', async function (e) {
           var rev = await reverseGeocodeKo(e.latlng.lat, e.latlng.lng);
-          showToast('선택 지역(' + rev.label + ') 날씨·물때·공원 업데이트 중...');
+          showToast('선택 지역(' + rev.label + ') 기상·물때·공원 업데이트 중...');
           setActiveLocation(e.latlng.lat, e.latlng.lng, rev.label, rev.detail, 'map');
         });
         updateMapMarkers();
@@ -1358,7 +2176,7 @@
         state.spotMarkers = [];
         state.nearbySpots.forEach(function (s) {
           var mk = L.circleMarker([s.lat, s.lng], {
-            radius: 7, color: s.kind === 'park' ? '#67e8f9' : '#36D6E8', fillColor: '#0B2948', fillOpacity: 0.9, weight: 2
+            radius: 7, color: s.kind === 'park' ? '#7dd3fc' : '#36D6E8', fillColor: '#0B2948', fillOpacity: 0.92, weight: 2
           }).addTo(state.map).bindPopup('<strong>' + escapeHtml(s.name) + '</strong><br/>차량 약 ' + s.driveMin + '분');
           state.spotMarkers.push(mk);
         });
@@ -1372,37 +2190,47 @@
             if (manual) showToast('기기 GPS 위치(' + rev.label + ')를 적용했습니다.');
           }, async function () {
             var ip = await fetchJsonSafe('https://ipwho.is/?lang=ko');
-            if (ip && ip.latitude && ip.longitude) {
-              setActiveLocation(ip.latitude, ip.longitude, ip.city || '대한민국 접속 지역', (ip.region || '') + ' (IP 위치)', 'ip');
+            if (ip && ip.latitude && ip.longitude && (ip.country_code === 'KR' || !ip.country_code)) {
+              setActiveLocation(ip.latitude, ip.longitude, ip.city || '대한민국 접속 지역', (ip.region || '') + ' (네트워크 위치)', 'ip');
             } else {
               setActiveLocation(35.1587, 129.1604, '부산 해운대 (기본)', 'GPS 미허용 시 기본 해안 좌표', 'default');
             }
           }, { enableHighAccuracy: true, timeout: 9000, maximumAge: 0 });
+        } else {
+          setActiveLocation(35.1587, 129.1604, '부산 해운대 (기본)', '기본 해안 좌표', 'default');
         }
       }
 
       async function renderFishAnalysis(primary, simList, note) {
         var box = document.getElementById('fish-analysis-result');
-        var imgUrl = primary.svg;
         var recsHtml = primary.edible && primary.recipes.length
           ? primary.recipes.map(function (r) {
-              return '<div class="glass-subcard" style="padding:10px;"><strong>' + r.dish + '</strong> <span class="badge">' + r.diff + '</span><p class="muted" style="font-size:12px;margin:4px 0 0;">' + r.method + ' (' + r.tip + ')</p></div>';
+              return '<div class="glass-subcard" style="padding:12px;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;"><strong>' + r.dish + '</strong><span class="status-tag">' + r.diff + '</span></div>' +
+                '<p class="muted" style="font-size:12px;margin:6px 0 0;line-height:1.5;">' + r.method + ' (' + r.tip + ')</p></div>';
             }).join('')
-          : '<div style="padding:10px;border-radius:12px;background:rgba(136,19,55,0.45);border:1px solid rgba(251,113,133,0.45);font-size:12px;">식용 불가 또는 독성·보호종입니다. 요리를 추천하지 않으며 즉시 방생하세요.</div>';
+          : '<div style="padding:12px;border-radius:12px;background:rgba(136,19,55,0.45);border:1px solid rgba(251,113,133,0.45);font-size:12px;line-height:1.5;">식용 불가 또는 독성·보호종입니다. 요리를 추천하지 않으며 만지지 말고 즉시 방생하세요.</div>';
         var simHtml = (simList || []).map(function (s) {
           return '<div class="glass-subcard" style="padding:10px;display:flex;gap:10px;align-items:center;">' +
-            '<img src="' + s.svg + '" alt="' + escapeHtml(s.name) + '" style="width:76px;height:44px;border-radius:8px;object-fit:cover;"/>' +
-            '<div><div style="font-weight:700;font-size:13px;">' + escapeHtml(s.name) + '</div><div class="muted" style="font-size:11px;">' + escapeHtml(s.diff) + '</div></div></div>';
+            '<img src="' + s.svg + '" alt="' + escapeHtml(s.name) + '" style="width:78px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0;"/>' +
+            '<div style="min-width:0;flex:1;"><div style="font-weight:700;font-size:13px;">' + escapeHtml(s.name) + '</div><div class="muted" style="font-size:11px;line-height:1.4;">' + escapeHtml(s.diff) + '</div></div>' +
+            '<button type="button" class="btn-aqua sample-fish-btn" data-fish="' + escapeHtml(s.aliases[0]) + '" style="min-height:32px;padding:4px 9px;font-size:11px;">보기</button></div>';
         }).join('');
+
         box.innerHTML =
           '<div class="grid-2">' +
-          '<div><img id="fish-main-photo" src="' + imgUrl + '" alt="' + escapeHtml(primary.name) + '" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px;border:1px solid var(--border-soft);margin-bottom:10px;"/>' +
-          '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"><span class="badge">' + primary.category + '</span><span class="' + (primary.edible ? 'badge' : 'badge badge-danger') + '">' + (primary.edible ? '식용 가능' : '식용 불가/위험') + '</span></div>' +
-          '<h3 style="margin:0 0 4px;font-size:20px;">' + escapeHtml(primary.name) + '</h3>' +
+          '<div><img id="fish-main-photo" src="' + primary.svg + '" alt="' + escapeHtml(primary.name) + '" style="width:100%;max-height:230px;object-fit:cover;border-radius:14px;border:1px solid rgba(75,159,232,0.3);margin-bottom:12px;"/>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"><span class="status-tag">' + primary.category + '</span><span class="' + (primary.edible ? 'status-tag safe' : 'status-tag danger') + '">' + (primary.edible ? '식용 가능' : '식용 불가/위험') + '</span></div>' +
+          '<h3 style="margin:0 0 4px;font-size:21px;font-weight:800;">' + escapeHtml(primary.name) + '</h3>' +
           '<div class="muted" style="font-size:12px;margin-bottom:8px;">학명: <em>' + primary.scientificName + '</em> · 평균 ' + primary.averageSize + ' · ' + primary.habitat + '</div>' +
-          (note ? '<div class="glass-subcard" style="padding:10px;font-size:12px;margin-bottom:8px;color:var(--cyan);">' + escapeHtml(note) + '</div>' : '') +
-          '<p style="font-size:13px;line-height:1.55;">' + escapeHtml(primary.features) + '</p>' +
-          '<div class="glass-subcard" style="padding:10px;font-size:12px;margin-top:8px;"><div><strong>체색:</strong> ' + primary.bodyColor + '</div><div><strong>지느러미:</strong> ' + primary.fins + '</div><div><strong>독성/주의:</strong> ' + primary.toxicity + '</div><div style="color:#fcd34d;"><strong>금어기·체장:</strong> ' + primary.fishingBan + '</div></div></div>' +
+          (note ? '<div class="glass-subcard text-cyan" style="padding:10px;font-size:12px;margin-bottom:8px;">' + escapeHtml(note) + '</div>' : '') +
+          '<p style="font-size:13px;line-height:1.6;">' + escapeHtml(primary.features) + '</p>' +
+          '<div class="glass-subcard" style="padding:12px;font-size:12px;display:flex;flex-direction:column;gap:5px;">' +
+          '<div><strong>체색:</strong> <span class="muted">' + primary.bodyColor + '</span></div>' +
+          '<div><strong>지느러미:</strong> <span class="muted">' + primary.fins + '</span></div>' +
+          '<div><strong>머리·입:</strong> <span class="muted">' + primary.head + '</span></div>' +
+          '<div><strong>독성/주의:</strong> <span class="muted">' + primary.toxicity + '</span></div>' +
+          '<div style="color:#fcd34d;"><strong>금어기·체장:</strong> ' + primary.fishingBan + '</div></div></div>' +
           '<div style="display:flex;flex-direction:column;gap:10px;"><strong class="text-cyan" style="font-size:14px;">식용 판별 · 추천 요리법</strong>' + recsHtml +
           '<strong class="text-cyan" style="font-size:14px;margin-top:6px;">유사 비교 어종 &amp; 이미지</strong>' + (simHtml || '<div class="muted" style="font-size:12px;">유사종 비교 완료</div>') +
           '</div></div>';
@@ -1424,7 +2252,7 @@
           return { fish: f, score: sc };
         }).sort(function (a, b) { return b.score - a.score; });
         var best = scored[0].score > 0 ? scored[0].fish : FISH_DB[3];
-        var note = scored[0].score >= 45 ? '입력하신 특징과 높은 일치율을 보였습니다.' : '정확히 확정되지 않아 특징이 가장 유사한 어종 및 비교 후보를 안내합니다.';
+        var note = scored[0].score >= 45 ? '입력하신 정보와 높은 일치율을 보였습니다.' : '정확히 확정되지 않아 특징이 가장 유사한 어종 및 비교 후보를 함께 안내합니다.';
         renderFishAnalysis(best, [scored[1].fish, scored[2].fish], note);
       }
 
@@ -1433,12 +2261,13 @@
         if (!state.diary.length) {
           state.diary = [{ id: 'd1', species: '참돔', location: '여수 거문도', size: 42, released: false, memo: '들물 타임 릴 찌낚시 조과', date: '2026-10-14' }];
         }
+        document.getElementById('nav-diary-count').textContent = state.diary.length;
         document.getElementById('diary-list').innerHTML = state.diary.map(function (item) {
           return '<div class="glass-subcard" style="padding:12px;display:flex;justify-content:space-between;gap:10px;">' +
-            '<div><div style="font-weight:800;">' + escapeHtml(item.species) + ' (' + item.size + 'cm) <span class="' + (item.released ? 'badge' : 'badge badge-park') + '">' + (item.released ? '방생' : '킵') + '</span></div>' +
-            '<div class="muted" style="font-size:11px;margin:3px 0;">' + escapeHtml(item.location) + ' · ' + item.date + '</div>' +
-            '<div style="font-size:12px;">' + escapeHtml(item.memo) + '</div></div>' +
-            '<button type="button" class="btn-danger del-diary-btn" data-id="' + item.id + '" style="align-self:flex-start;font-size:11px;">삭제</button></div>';
+            '<div><div style="font-weight:800;">' + escapeHtml(item.species) + ' <span class="font-mono">(' + item.size + 'cm)</span> <span class="' + (item.released ? 'status-tag safe' : 'status-tag') + '">' + (item.released ? '방생' : '킵') + '</span></div>' +
+            '<div class="muted font-mono" style="font-size:11px;margin:3px 0;">' + escapeHtml(item.location) + ' · ' + item.date + '</div>' +
+            '<div style="font-size:12px;" class="muted">' + escapeHtml(item.memo || '메모 없음') + '</div></div>' +
+            '<button type="button" class="btn-danger del-diary-btn" data-id="' + item.id + '">삭제</button></div>';
         }).join('');
       }
 
@@ -1449,18 +2278,23 @@
         return out;
       }
 
-      function initChat() {
-        var isFile = location.protocol === 'file:';
+      function syncNicknameUi() {
+        document.getElementById('header-nick-text').textContent = state.nick;
         document.getElementById('chat-user-badge').textContent = '닉네임: ' + state.nick;
         document.getElementById('chat-nickname-input').value = state.nick;
+      }
+
+      function initChat() {
+        var isFile = location.protocol === 'file:';
+        syncNicknameUi();
         try {
           state.rooms = JSON.parse(localStorage.getItem('il_rooms') || '[]');
           state.messages = JSON.parse(localStorage.getItem('il_msgs') || '{}');
         } catch (e) { state.rooms = []; state.messages = {}; }
         if (!state.rooms.length) {
           state.rooms = [
-            { id: 'open_public_1', title: '전국 생활낚시 오픈채팅방', region: '전국', visibility: 'public', hostUid: state.uid, members: [state.uid], inviteCode: '' },
-            { id: 'open_public_2', title: '방파제 초보 · 채비 질문방', region: '부산/남해', visibility: 'public', hostUid: 'system', members: [state.uid], inviteCode: '' }
+            { id: 'open_public_1', title: '전국 생활낚시 오픈채팅방', region: '전체', visibility: 'public', hostUid: state.uid, members: [state.uid], inviteCode: '' },
+            { id: 'open_public_2', title: '방파제 초보 · 채비 질문방', region: '남해', visibility: 'public', hostUid: 'system', members: [state.uid], inviteCode: '' }
           ];
           state.messages['open_public_1'] = [{ sender: '안내봇', uid: 'sys', text: '실시간 낚시 오픈채팅방입니다. 비속어는 *로 자동 마스킹됩니다.', ts: '방금' }];
           localStorage.setItem('il_rooms', JSON.stringify(state.rooms));
@@ -1470,15 +2304,28 @@
           try {
             var app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
             state.db = app.firestore(FIREBASE_CONFIG.firestoreDatabaseId);
+            state.auth = firebase.auth();
             document.getElementById('btn-google-login').style.display = 'inline-flex';
-            document.getElementById('chat-mode-desc').textContent = '웹 배포 모드: Google 로그인 및 실시간 채팅 지원 (현재 로컬 세션도 즉시 사용 가능)';
+            document.getElementById('chat-mode-desc').textContent = '웹 배포 모드: Google 로그인 시 클라우드 실시간 방 동기화 가능 (비로그인 즉시 로컬 세션도 작동)';
+            state.auth.onAuthStateChanged(function (user) {
+              state.authUser = user;
+              var loginBtn = document.getElementById('btn-google-login');
+              if (user) {
+                state.uid = user.uid;
+                if (!localStorage.getItem('il_nick_custom') && user.displayName) {
+                  state.nick = user.displayName;
+                  syncNicknameUi();
+                }
+                loginBtn.textContent = '로그아웃';
+              } else {
+                loginBtn.textContent = 'Google 로그인';
+              }
+            });
           } catch (e) {
             document.getElementById('chat-mode-desc').textContent = '오프라인/로컬 채팅 모드 동작 중';
           }
         } else {
-          document.getElementById('chat-mode-desc').textContent = isFile
-            ? '로컬 브라우저(file://) 실행 모드: 공개/비공개방 생성, 방 삭제, 참여, 초대코드 입장이 브라우저에 저장되어 즉시 작동합니다.'
-            : '오픈채팅·비공개방 사용 가능';
+          document.getElementById('chat-mode-desc').textContent = '단독 실행(file://) 모드: 공개/비공개방 생성, 방 삭제, 참여, 초대코드 입장, 닉네임 변경이 즉시 동작합니다.';
         }
         renderChat();
       }
@@ -1487,12 +2334,19 @@
         var roomsEl = document.getElementById('chat-rooms-list');
         roomsEl.innerHTML = state.rooms.map(function (r) {
           var active = r.id === state.activeRoomId;
-          return '<button type="button" class="btn-aqua select-room-btn" data-id="' + r.id + '" style="justify-content:space-between;width:100%;' + (active ? 'border-color:var(--cyan);' : '') + '">' +
+          return '<button type="button" class="btn-aqua select-room-btn" data-id="' + r.id + '" style="justify-content:space-between;width:100%;min-height:38px;' + (active ? 'border-color:var(--cyan);' : '') + '">' +
             '<span style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (r.visibility === 'private' ? '[비공개] ' : '[공개] ') + escapeHtml(r.title) + '</span>' +
             '<span class="muted" style="font-size:10px;">' + escapeHtml(r.region) + '</span></button>';
         }).join('');
         var curRoom = state.rooms.find(function (r) { return r.id === state.activeRoomId; }) || state.rooms[0];
-        if (!curRoom) return;
+        if (!curRoom) {
+          document.getElementById('active-room-title').textContent = '채팅방 없음';
+          document.getElementById('active-room-meta').textContent = '왼쪽에서 새 방을 만드세요.';
+          document.getElementById('btn-join-room').style.display = 'none';
+          document.getElementById('btn-delete-room').style.display = 'none';
+          document.getElementById('chat-messages-box').innerHTML = '';
+          return;
+        }
         state.activeRoomId = curRoom.id;
         var isMember = (curRoom.members || []).indexOf(state.uid) >= 0;
         var isHost = curRoom.hostUid === state.uid;
@@ -1502,26 +2356,70 @@
         document.getElementById('btn-delete-room').style.display = isHost ? 'inline-flex' : 'none';
         var msgs = state.messages[curRoom.id] || [];
         var box = document.getElementById('chat-messages-box');
-        box.innerHTML = isMember ? (msgs.map(function (m) {
+        box.innerHTML = isMember ? (msgs.map(function (m, idx) {
           var mine = m.uid === state.uid;
-          return '<div class="msg-bubble ' + (mine ? 'msg-mine' : 'msg-other') + '"><div style="font-size:10px;opacity:0.75;margin-bottom:2px;">' + escapeHtml(m.sender) + ' · ' + m.ts + '</div>' + escapeHtml(m.text) + '</div>';
+          var canDel = mine || isHost;
+          var msgId = m.id || ('idx_' + idx);
+          var delBtn = canDel
+            ? ' <button type="button" class="del-msg-btn" data-msgid="' + escapeHtml(msgId) + '" data-idx="' + idx + '" style="margin-left:6px;padding:1px 6px;border-radius:5px;border:1px solid rgba(239,68,68,0.45);background:rgba(127,29,29,0.55);color:#fecaca;font-size:10px;cursor:pointer;">삭제</button>'
+            : '';
+          return '<div class="msg-bubble ' + (mine ? 'msg-mine' : 'msg-other') + '"><div style="font-size:10px;opacity:0.8;margin-bottom:2px;display:flex;align-items:center;justify-content:space-between;gap:6px;"><span>' + escapeHtml(m.sender) + ' · ' + m.ts + '</span>' + delBtn + '</div>' + escapeHtml(m.text) + '</div>';
         }).join('') || '<div class="muted" style="font-size:12px;">첫 인사를 남겨보세요!</div>') : '<div class="muted" style="font-size:13px;">상단의 [방 참여하기]를 눌러야 대화에 참여할 수 있습니다.</div>';
         box.scrollTop = box.scrollHeight;
       }
 
-      // Bindings
       function switchTab(tabId) {
         document.querySelectorAll('.tab-panel').forEach(function (el) { el.classList.toggle('active', el.id === 'tab-' + tabId); });
         document.querySelectorAll('[data-tab]').forEach(function (btn) { btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId); });
         if (tabId === 'spots') { initMap(); setTimeout(function () { if (state.map) state.map.invalidateSize(); }, 80); }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
+      document.getElementById('btn-brand-home').addEventListener('click', function () { switchTab('home'); });
       document.querySelectorAll('[data-tab]').forEach(function (b) {
         b.addEventListener('click', function () { switchTab(b.getAttribute('data-tab')); });
       });
       document.querySelectorAll('[data-jump-tab]').forEach(function (b) {
         b.addEventListener('click', function () { switchTab(b.getAttribute('data-jump-tab')); });
       });
+
+      document.querySelectorAll('[data-chart-tab]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          state.chartTab = b.getAttribute('data-chart-tab');
+          document.querySelectorAll('[data-chart-tab]').forEach(function (el) {
+            el.classList.toggle('active', el.getAttribute('data-chart-tab') === state.chartTab);
+          });
+          renderChart();
+        });
+      });
+
+      document.getElementById('hourly-chart-container').addEventListener('click', function (e) {
+        var col = e.target.closest('.chart-col-pick');
+        if (!col) return;
+        state.selectedHourIdx = Number(col.getAttribute('data-idx') || 0);
+        renderChart();
+      });
+
+      document.getElementById('hourly-chips-grid').addEventListener('click', function (e) {
+        var chip = e.target.closest('.hour-chip');
+        if (!chip) return;
+        state.selectedHourIdx = Number(chip.getAttribute('data-idx') || 0);
+        renderChart();
+      });
+
+      document.getElementById('btn-filter-30m').addEventListener('click', function () {
+        state.maxMinutesFilter = 30;
+        this.className = 'btn-cyan';
+        document.getElementById('btn-filter-60m').className = 'btn-aqua';
+        renderHome();
+      });
+      document.getElementById('btn-filter-60m').addEventListener('click', function () {
+        state.maxMinutesFilter = 60;
+        this.className = 'btn-cyan';
+        document.getElementById('btn-filter-30m').className = 'btn-aqua';
+        renderHome();
+      });
+
       document.getElementById('btn-gps-sync').addEventListener('click', function () { detectDeviceLocation(true); });
       document.getElementById('btn-home-refresh').addEventListener('click', function () {
         setActiveLocation(state.activeLocation.lat, state.activeLocation.lng, state.activeLocation.label, state.activeLocation.detail, state.activeLocation.source);
@@ -1537,25 +2435,28 @@
         if (!state.liveTracking && navigator.geolocation) {
           state.liveTracking = true;
           btn.textContent = '실시간 추적 ON';
+          btn.style.color = '#36D6E8';
           state.watchId = navigator.geolocation.watchPosition(async function (pos) {
-            if (state.activeLocation.source === 'map') return;
             if (distKm(state.activeLocation, { lat: pos.coords.latitude, lng: pos.coords.longitude }) >= 0.15) {
               var rev = await reverseGeocodeKo(pos.coords.latitude, pos.coords.longitude);
-              setActiveLocation(pos.coords.latitude, pos.coords.longitude, rev.label, rev.detail + ' (실시간 추적)', 'gps');
+              setActiveLocation(pos.coords.latitude, pos.coords.longitude, rev.label, rev.detail + ' (실시간 이동 추적)', 'gps');
             }
           }, null, { enableHighAccuracy: true });
         } else {
           state.liveTracking = false;
           btn.textContent = '실시간 추적 OFF';
+          btn.style.color = '';
           if (state.watchId != null && navigator.geolocation) navigator.geolocation.clearWatch(state.watchId);
         }
       });
+
       document.getElementById('nearby-spots-grid').addEventListener('click', function (e) {
         var btn = e.target.closest('.focus-spot-btn');
         if (!btn) return;
         setActiveLocation(Number(btn.dataset.lat), Number(btn.dataset.lng), btn.dataset.name, '추천 장소 선택 기준', 'map');
         showToast(btn.dataset.name + ' 기준 날씨·물때로 변경했습니다.');
       });
+
       document.getElementById('map-search-form').addEventListener('submit', async function (e) {
         e.preventDefault();
         var q = document.getElementById('map-search-input').value.trim();
@@ -1565,9 +2466,17 @@
           await setActiveLocation(Number(res[0].lat), Number(res[0].lon), res[0].name || q, res[0].display_name, 'map');
           showToast((res[0].name || q) + ' 날씨·물때·주변 공원 반영 완료');
         } else {
-          showToast('검색 결과를 찾지 못했습니다.');
+          var ph = await fetchJsonSafe('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1');
+          if (ph && ph.features && ph.features[0]) {
+            var ft = ph.features[0];
+            await setActiveLocation(Number(ft.geometry.coordinates[1]), Number(ft.geometry.coordinates[0]), ft.properties.name || q, ft.properties.city || q, 'map');
+            showToast((ft.properties.name || q) + ' 지역으로 이동했습니다.');
+          } else {
+            showToast('검색 결과를 찾지 못했습니다.');
+          }
         }
       });
+
       document.getElementById('btn-layer-sat').addEventListener('click', function () {
         if (!state.map) return; state.map.removeLayer(state.osmLayer); state.satLayer.addTo(state.map);
       });
@@ -1587,9 +2496,11 @@
       document.getElementById('fish-feature-form').addEventListener('submit', function (e) {
         e.preventDefault(); analyzeFishText(document.getElementById('fish-feature-input').value);
       });
-      document.querySelectorAll('.sample-fish-btn').forEach(function (b) {
-        b.addEventListener('click', function () { analyzeFishText(b.dataset.fish); });
+      document.getElementById('tab-identify').addEventListener('click', function (e) {
+        var b = e.target.closest('.sample-fish-btn');
+        if (b) analyzeFishText(b.dataset.fish);
       });
+
       document.getElementById('fish-photo-input').addEventListener('change', function (e) {
         var file = e.target.files && e.target.files[0];
         if (!file) return;
@@ -1613,6 +2524,9 @@
         reader.readAsDataURL(file);
       });
 
+      document.getElementById('btn-diary-fill-loc').addEventListener('click', function () {
+        document.getElementById('diary-location').value = state.activeLocation.label;
+      });
       document.getElementById('diary-form').addEventListener('submit', function (e) {
         e.preventDefault();
         var k = getKstParts();
@@ -1638,18 +2552,55 @@
         loadDiary();
       });
 
+      document.getElementById('btn-user-nick').addEventListener('click', function () {
+        document.getElementById('modal-nick-input').value = state.nick;
+        document.getElementById('nickname-modal').classList.add('open');
+      });
+      document.getElementById('btn-close-nick-modal').addEventListener('click', function () {
+        document.getElementById('nickname-modal').classList.remove('open');
+      });
+      document.getElementById('modal-nick-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var val = document.getElementById('modal-nick-input').value.trim();
+        if (val.length < 2) return showToast('닉네임은 2글자 이상 입력하세요.');
+        state.nick = val;
+        localStorage.setItem('il_nick', val);
+        localStorage.setItem('il_nick_custom', '1');
+        syncNicknameUi();
+        document.getElementById('nickname-modal').classList.remove('open');
+        showToast('닉네임이 변경되었습니다.');
+      });
+
+      document.getElementById('btn-google-login').addEventListener('click', async function () {
+        if (!state.auth || !window.firebase) return;
+        try {
+          if (state.authUser) {
+            await state.auth.signOut();
+            showToast('로그아웃했습니다.');
+          } else {
+            var provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            await state.auth.signInWithPopup(provider);
+            showToast('Google 로그인 완료');
+          }
+        } catch (err) {
+          showToast('로그인 창이 취소되었거나 도메인 권한 확인이 필요합니다.');
+        }
+      });
+
       document.getElementById('btn-save-nick').addEventListener('click', function () {
         var val = document.getElementById('chat-nickname-input').value.trim();
         if (val.length < 2) return showToast('닉네임은 2글자 이상 입력하세요.');
-        state.nick = val; localStorage.setItem('il_nick', val);
-        document.getElementById('chat-user-badge').textContent = '닉네임: ' + val;
+        state.nick = val; localStorage.setItem('il_nick', val); localStorage.setItem('il_nick_custom', '1');
+        syncNicknameUi();
         showToast('닉네임이 변경되었습니다.');
       });
+
       document.getElementById('create-room-form').addEventListener('submit', function (e) {
         e.preventDefault();
         var title = document.getElementById('new-room-title').value.trim();
         var vis = document.getElementById('new-room-visibility').value;
-        var reg = document.getElementById('new-room-region').value.trim() || '전국';
+        var reg = document.getElementById('new-room-region').value || '전체';
         var code = vis === 'private' ? Math.random().toString(36).slice(2, 8).toUpperCase() : '';
         var room = { id: 'room_' + Date.now(), title: title, visibility: vis, region: reg, hostUid: state.uid, members: [state.uid], inviteCode: code };
         state.rooms.unshift(room);
@@ -1661,6 +2612,7 @@
         renderChat();
         showToast(vis === 'private' ? ('비공개방 생성 (코드: ' + code + ')') : '공개방이 생성되었습니다.');
       });
+
       document.getElementById('join-code-form').addEventListener('submit', function (e) {
         e.preventDefault();
         var code = document.getElementById('invite-code-input').value.trim().toUpperCase();
@@ -1671,17 +2623,20 @@
         localStorage.setItem('il_rooms', JSON.stringify(state.rooms));
         renderChat();
       });
+
       document.getElementById('chat-rooms-list').addEventListener('click', function (e) {
         var b = e.target.closest('.select-room-btn');
         if (!b) return;
         state.activeRoomId = b.dataset.id; renderChat();
       });
+
       document.getElementById('btn-join-room').addEventListener('click', function () {
         var r = state.rooms.find(function (rm) { return rm.id === state.activeRoomId; });
         if (r && r.members.indexOf(state.uid) < 0) r.members.push(state.uid);
         localStorage.setItem('il_rooms', JSON.stringify(state.rooms));
         renderChat();
       });
+
       document.getElementById('btn-delete-room').addEventListener('click', function () {
         var r = state.rooms.find(function (rm) { return rm.id === state.activeRoomId; });
         if (!r || r.hostUid !== state.uid) return;
@@ -1691,19 +2646,37 @@
         renderChat();
         showToast('채팅방을 삭제했습니다.');
       });
+
       document.getElementById('btn-share-spot').addEventListener('click', function () {
         document.getElementById('chat-message-input').value = '[위치공유] ' + state.activeLocation.label + ' (' + state.activeLocation.lat.toFixed(4) + ', ' + state.activeLocation.lng.toFixed(4) + ')';
       });
+
+      document.getElementById('chat-messages-box').addEventListener('click', function (e) {
+        var btn = e.target.closest('.del-msg-btn');
+        if (!btn) return;
+        var r = state.rooms.find(function (rm) { return rm.id === state.activeRoomId; });
+        if (!r) return;
+        var idx = Number(btn.dataset.idx);
+        var list = state.messages[r.id] || [];
+        var target = list[idx];
+        if (!target) return;
+        if (target.uid !== state.uid && r.hostUid !== state.uid) return;
+        state.messages[r.id] = list.filter(function (_, i) { return i !== idx; });
+        localStorage.setItem('il_msgs', JSON.stringify(state.messages));
+        renderChat();
+        showToast('메시지를 삭제했습니다.');
+      });
+
       document.getElementById('chat-send-form').addEventListener('submit', function (e) {
         e.preventDefault();
         var inp = document.getElementById('chat-message-input');
         var txt = maskBadWords(inp.value.trim());
         if (!txt) return;
         var r = state.rooms.find(function (rm) { return rm.id === state.activeRoomId; });
-        if (!r || r.members.indexOf(state.uid) < 0) return showToast('먼저 방에 참여하세요.');
+        if (!r || r.members.indexOf(state.uid) < 0) return showToast('먼저 [방 참여하기]를 눌러 참여하세요.');
         var k = getKstParts();
         state.messages[r.id] = state.messages[r.id] || [];
-        state.messages[r.id].push({ sender: state.nick, uid: state.uid, text: txt, ts: k.hour + ':' + k.minute });
+        state.messages[r.id].push({ id: 'm_' + Date.now(), sender: state.nick, uid: state.uid, text: txt, ts: k.hour + ':' + k.minute });
         localStorage.setItem('il_msgs', JSON.stringify(state.messages));
         inp.value = '';
         renderChat();
@@ -1711,13 +2684,15 @@
 
       function updateClock() {
         var k = getKstParts();
-        document.getElementById('kst-clock-pill').textContent = 'KST ' + k.month + '/' + k.day + ' ' + k.hour + ':' + k.minute + ':' + k.second;
+        document.getElementById('header-kst-short').textContent = k.hour + ':' + k.minute + ' KST';
+        document.getElementById('kst-clock-full').textContent = k.year + '.' + k.month + '.' + k.day + ' ' + k.hour + ':' + k.minute + ':' + k.second;
+        document.getElementById('kst-window-label').textContent = '· ' + getKstWindowLabel(Number(k.hour));
       }
 
       updateClock();
       setInterval(updateClock, 1000);
       renderSeasonalRegulations();
-      renderFishAnalysis(FISH_DB[0], [FISH_DB[1], FISH_DB[3]], '어종 이름 또는 특징을 입력해 분석을 시작하세요.');
+      renderFishAnalysis(FISH_DB[0], [FISH_DB[1], FISH_DB[3]], '어종 이름, 사진 또는 생김새 특징을 입력해 AI 판별을 시작하세요.');
       loadDiary();
       initChat();
       detectDeviceLocation(false);
@@ -1725,4 +2700,3 @@
   </script>
 </body>
 </html>
-

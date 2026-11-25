@@ -439,6 +439,40 @@
         "sharedSpotName",
         "createdAt"
       ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Verified administrator role record authorizing admin-only index.html export and role management.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"]
+        },
+        "grantedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "role", "grantedBy", "createdAt"]
     }
   },
   "firestore": {
@@ -477,6 +511,10 @@
     "/dm_threads/{threadId}/messages/{messageId}": {
       "schema": { "$ref": "#/entities/DmMessage" },
       "description": "Private 1:1 DM messages accessible only to the two participating users."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Administrator registry allowing bootstrapped or granted admins to manage admin accounts and export index.html."
     }
   }
 }

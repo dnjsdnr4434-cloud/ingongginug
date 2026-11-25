@@ -2,17 +2,42 @@ export interface MarineHourlyPoint {
   time: string;
   hourLabel: string;
   temperatureC: number;
+  apparentTempC?: number | null;
+  humidityPct?: number | null;
+  pressureHpa?: number | null;
+  visibilityKm?: number | null;
+  cloudCoverPct?: number | null;
+  uvIndex?: number | null;
   weatherCode: number;
   windSpeedMs: number;
   windGustsMs: number | null;
   windDirectionDeg: number;
   precipitationProb: number | null;
   waveHeightM: number | null;
+  swellHeightM?: number | null;
   seaSurfaceTempC: number | null;
 }
 
 export interface FishingWeatherData {
   temperatureC: number;
+  apparentTempC?: number | null;
+  humidityPct?: number | null;
+  dewPointC?: number | null;
+  pressureHpa?: number | null;
+  pressureDelta3hHpa?: number | null;
+  pressureTrend?: '상승' | '안정' | '하강' | null;
+  cloudCoverPct?: number | null;
+  visibilityKm?: number | null;
+  uvIndex?: number | null;
+  uvIndexMax?: number | null;
+  sunriseKst?: string | null;
+  sunsetKst?: string | null;
+  dailyMinTempC?: number | null;
+  dailyMaxTempC?: number | null;
+  dailyPrecipProbMax?: number | null;
+  pm10?: number | null;
+  pm25?: number | null;
+  airQualityLabel?: string | null;
   weatherCode: number;
   windSpeedMs: number;
   windDirectionDeg: number;
@@ -22,6 +47,12 @@ export interface FishingWeatherData {
   waveHeightM: number | null;
   wavePeriodSec?: number | null;
   waveDirectionDeg?: number | null;
+  windWaveHeightM?: number | null;
+  swellHeightM?: number | null;
+  swellPeriodSec?: number | null;
+  swellDirectionDeg?: number | null;
+  oceanCurrentSpeedMs?: number | null;
+  oceanCurrentDirDeg?: number | null;
   seaSurfaceTempC?: number | null;
   isLive: boolean;
   observedAt?: string;
@@ -274,6 +305,167 @@ export function buildChartPoints(
   return points;
 }
 
+export interface DetailedMetricAssessment {
+  label: string;
+  advice: string;
+  tone: 'calm' | 'moderate' | 'caution' | 'danger' | 'unknown';
+}
+
+export function assessPressureTrend(
+  pressureHpa: number | null | undefined,
+  delta3hHpa: number | null | undefined
+): DetailedMetricAssessment {
+  if (pressureHpa === null || pressureHpa === undefined || !Number.isFinite(pressureHpa)) {
+    return {
+      label: '기압 정보 없음',
+      advice: '실시간 기압 데이터를 불러오는 중입니다',
+      tone: 'unknown',
+    };
+  }
+  const delta = typeof delta3hHpa === 'number' && Number.isFinite(delta3hHpa) ? delta3hHpa : 0;
+  if (delta >= 0.8) {
+    return {
+      label: '기압 상승 · 활발',
+      advice: '저기압 통과 후 맑아지는 흐름으로 물고기 먹이활동이 살아납니다',
+      tone: 'calm',
+    };
+  }
+  if (delta <= -0.8) {
+    return {
+      label: '기압 하강 · 변화 주의',
+      advice: '기압이 내려가며 바람·너울이 강해질 수 있어 예보를 계속 확인하세요',
+      tone: 'moderate',
+    };
+  }
+  if (pressureHpa >= 1018) {
+    return {
+      label: '고기압 안정권',
+      advice: '기압 변화가 작아 안정적인 입질과 잔잔한 하늘이 유지됩니다',
+      tone: 'calm',
+    };
+  }
+  return {
+    label: '기압 안정',
+    advice: '급격한 기압 변동이 없어 계획한 시간대로 출조하기 좋습니다',
+    tone: 'calm',
+  };
+}
+
+export function assessVisibilityFog(
+  visibilityKm: number | null | undefined
+): DetailedMetricAssessment {
+  if (visibilityKm === null || visibilityKm === undefined || !Number.isFinite(visibilityKm)) {
+    return {
+      label: '시정 관측 없음',
+      advice: '주변 시야 상태를 육안으로 함께 확인하세요',
+      tone: 'unknown',
+    };
+  }
+  if (visibilityKm >= 10) {
+    return {
+      label: '시계 매우 양호',
+      advice: '해무 없이 원거리 갯바위·방파제 시야가 탁 트여 있습니다',
+      tone: 'calm',
+    };
+  }
+  if (visibilityKm >= 3) {
+    return {
+      label: '약간 흐림 · 연무',
+      advice: '먼 바다 연무가 있으나 연안 방파제 시야는 무난합니다',
+      tone: 'moderate',
+    };
+  }
+  if (visibilityKm >= 1) {
+    return {
+      label: '해무 주의',
+      advice: '안개로 시야가 짧으니 구명조끼·랜턴을 착용하고 발밑을 살피세요',
+      tone: 'caution',
+    };
+  }
+  return {
+    label: '짙은 해무 위험',
+    advice: '시정 1km 미만 농무로 방파제 끝단·선착장 진입을 삼가세요',
+    tone: 'danger',
+  };
+}
+
+export function assessAirQuality(
+  pm10: number | null | undefined,
+  pm25: number | null | undefined
+): DetailedMetricAssessment {
+  const hasPm10 = typeof pm10 === 'number' && Number.isFinite(pm10);
+  const hasPm25 = typeof pm25 === 'number' && Number.isFinite(pm25);
+  if (!hasPm10 && !hasPm25) {
+    return {
+      label: '대기질 정보 없음',
+      advice: '대기 관측 값을 수신하지 못했습니다',
+      tone: 'unknown',
+    };
+  }
+  if ((hasPm25 && pm25! >= 76) || (hasPm10 && pm10! >= 151)) {
+    return {
+      label: '매우 나쁨',
+      advice: '미세먼지가 매우 높아 장시간 야외 노출을 피하세요',
+      tone: 'danger',
+    };
+  }
+  if ((hasPm25 && pm25! >= 36) || (hasPm10 && pm10! >= 81)) {
+    return {
+      label: '나쁨',
+      advice: '보건용 마스크(KF80 이상) 착용을 권장합니다',
+      tone: 'caution',
+    };
+  }
+  if ((hasPm25 && pm25! >= 16) || (hasPm10 && pm10! >= 31)) {
+    return {
+      label: '보통',
+      advice: '무난한 대기질로 야외 낚시에 큰 지장이 없습니다',
+      tone: 'moderate',
+    };
+  }
+  return {
+    label: '좋음',
+    advice: '바닷바람과 함께 쾌적하고 맑은 대기 상태입니다',
+    tone: 'calm',
+  };
+}
+
+export function assessUvIndex(uv: number | null | undefined): DetailedMetricAssessment {
+  if (uv === null || uv === undefined || !Number.isFinite(uv)) {
+    return {
+      label: '정보 없음',
+      advice: '일출·일몰 시간에 맞춰 자외선에 대비하세요',
+      tone: 'unknown',
+    };
+  }
+  if (uv >= 8) {
+    return {
+      label: '매우 높음',
+      advice: '수면 반사광이 강하므로 선글라스·선크림·챙모자가 필수입니다',
+      tone: 'danger',
+    };
+  }
+  if (uv >= 6) {
+    return {
+      label: '높음',
+      advice: '한낮 직사광선 차단용 모자와 자외선 차단제를 챙기세요',
+      tone: 'caution',
+    };
+  }
+  if (uv >= 3) {
+    return {
+      label: '보통',
+      advice: '물가 반사광을 고려해 가벼운 자외선 차단을 권장합니다',
+      tone: 'moderate',
+    };
+  }
+  return {
+    label: '낮음',
+    advice: '자외선 부담이 적어 편안하게 출조할 수 있습니다',
+    tone: 'calm',
+  };
+}
+
 export function createExampleHourlySeries(
   base: Pick<
     FishingWeatherData,
@@ -303,12 +495,19 @@ export function createExampleHourlySeries(
       time: `2026-01-01T${hourStr}:00`,
       hourLabel: `${hour}시`,
       temperatureC: temp,
+      apparentTempC: Number((temp - wind * 0.45).toFixed(1)),
+      humidityPct: 58 + (idx % 4) * 3,
+      pressureHpa: Number((1018.2 + idx * 0.2).toFixed(1)),
+      visibilityKm: 18.0,
+      cloudCoverPct: base.weatherCode >= 3 ? 75 : 20,
+      uvIndex: hour >= 10 && hour <= 15 ? 3.2 : 0.2,
       weatherCode: base.weatherCode,
       windSpeedMs: wind,
       windGustsMs: Number((wind * 1.35).toFixed(1)),
       windDirectionDeg: (base.windDirectionDeg + idx * 5) % 360,
       precipitationProb: base.weatherCode >= 51 ? 60 : 10,
       waveHeightM: wave,
+      swellHeightM: wave !== null ? Number((wave * 0.65).toFixed(2)) : null,
       seaSurfaceTempC: sst,
     };
   });
@@ -408,72 +607,63 @@ export function calculateBeginnerFishingRating(
   };
 }
 
-export interface KoreaWeatherStation {
+export interface CoastalWeatherStation {
   name: string;
   lat: number;
   lng: number;
-  isCoastal: boolean;
-  baseWaveM: number | null;
+  seaRegion: string;
+  baseWaveM: number;
+  baseWindMs: number;
+  baseSstOffsetC: number;
 }
 
-export const KOREA_WEATHER_STATIONS: KoreaWeatherStation[] = [
-  { name: '서울', lat: 37.5665, lng: 126.978, isCoastal: false, baseWaveM: null },
-  { name: '인천', lat: 37.4563, lng: 126.7052, isCoastal: true, baseWaveM: 0.4 },
-  { name: '수원', lat: 37.2636, lng: 127.0286, isCoastal: false, baseWaveM: null },
-  { name: '춘천', lat: 37.8813, lng: 127.7298, isCoastal: false, baseWaveM: null },
-  { name: '속초', lat: 38.2045, lng: 128.5912, isCoastal: true, baseWaveM: 0.6 },
-  { name: '강릉', lat: 37.7519, lng: 128.8761, isCoastal: true, baseWaveM: 0.6 },
-  { name: '태안', lat: 36.7456, lng: 126.2981, isCoastal: true, baseWaveM: 0.5 },
-  { name: '보령', lat: 36.3335, lng: 126.6128, isCoastal: true, baseWaveM: 0.5 },
-  { name: '대전', lat: 36.3504, lng: 127.3845, isCoastal: false, baseWaveM: null },
-  { name: '청주', lat: 36.6424, lng: 127.489, isCoastal: false, baseWaveM: null },
-  { name: '군산', lat: 35.9677, lng: 126.7366, isCoastal: true, baseWaveM: 0.5 },
-  { name: '전주', lat: 35.8242, lng: 127.148, isCoastal: false, baseWaveM: null },
-  { name: '광주', lat: 35.1595, lng: 126.8526, isCoastal: false, baseWaveM: null },
-  { name: '목포', lat: 34.8118, lng: 126.3922, isCoastal: true, baseWaveM: 0.5 },
-  { name: '여수', lat: 34.7604, lng: 127.6622, isCoastal: true, baseWaveM: 0.5 },
-  { name: '통영', lat: 34.8544, lng: 128.4331, isCoastal: true, baseWaveM: 0.4 },
-  { name: '창원', lat: 35.2279, lng: 128.6811, isCoastal: true, baseWaveM: 0.3 },
-  { name: '부산', lat: 35.1587, lng: 129.1604, isCoastal: true, baseWaveM: 0.5 },
-  { name: '울산', lat: 35.5384, lng: 129.3114, isCoastal: true, baseWaveM: 0.6 },
-  { name: '포항', lat: 36.019, lng: 129.3435, isCoastal: true, baseWaveM: 0.6 },
-  { name: '대구', lat: 35.8714, lng: 128.6014, isCoastal: false, baseWaveM: null },
-  { name: '제주', lat: 33.4996, lng: 126.5312, isCoastal: true, baseWaveM: 0.7 },
-  { name: '서귀포', lat: 33.2541, lng: 126.56, isCoastal: true, baseWaveM: 0.7 },
+export const KOREA_COASTAL_WEATHER_STATIONS: CoastalWeatherStation[] = [
+  { name: '부산 해운대·기장 관측소', lat: 35.1587, lng: 129.1704, seaRegion: '남해 동부', baseWaveM: 0.65, baseWindMs: 3.8, baseSstOffsetC: 1.5 },
+  { name: '인천 영종·소래포구 관측소', lat: 37.4563, lng: 126.6052, seaRegion: '서해 중부', baseWaveM: 0.45, baseWindMs: 4.1, baseSstOffsetC: -1.0 },
+  { name: '태안 안면도·신진도 관측소', lat: 36.6805, lng: 126.1355, seaRegion: '서해 중부', baseWaveM: 0.55, baseWindMs: 4.4, baseSstOffsetC: -0.5 },
+  { name: '목포·진도 서남해 관측소', lat: 34.7875, lng: 126.3821, seaRegion: '서해 남부', baseWaveM: 0.60, baseWindMs: 4.2, baseSstOffsetC: 0.5 },
+  { name: '여수 돌산·금오도 관측소', lat: 34.7448, lng: 127.7478, seaRegion: '남해 서부', baseWaveM: 0.58, baseWindMs: 3.6, baseSstOffsetC: 1.2 },
+  { name: '거제·통영 한려해상 관측소', lat: 34.8414, lng: 128.4332, seaRegion: '남해 동부', baseWaveM: 0.52, baseWindMs: 3.4, baseSstOffsetC: 1.4 },
+  { name: '제주시·서귀포 연안 관측소', lat: 33.5141, lng: 126.5297, seaRegion: '제주 해역', baseWaveM: 0.85, baseWindMs: 4.9, baseSstOffsetC: 2.8 },
+  { name: '포항 구룡포·영일만 관측소', lat: 35.9912, lng: 129.5567, seaRegion: '동해 남부', baseWaveM: 0.72, baseWindMs: 4.0, baseSstOffsetC: 0.2 },
+  { name: '강릉 주문진·동해 관측소', lat: 37.8925, lng: 128.8266, seaRegion: '동해 중부', baseWaveM: 0.78, baseWindMs: 4.3, baseSstOffsetC: -1.2 },
+  { name: '속초·고성 동해북부 관측소', lat: 38.2070, lng: 128.5918, seaRegion: '동해 북부', baseWaveM: 0.80, baseWindMs: 4.5, baseSstOffsetC: -1.8 },
 ];
 
-function stationDistanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+function haversineDistanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
   const R = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
   const h =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((a.lat * Math.PI) / 180) *
-      Math.cos((b.lat * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    sinLat * sinLat +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
+  return Number((2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))).toFixed(2));
 }
 
 export function getSortedNearestWeatherStations(coords: {
   lat: number;
   lng: number;
-}): Array<KoreaWeatherStation & { distanceKm: number }> {
-  return KOREA_WEATHER_STATIONS.map((station) => ({
+}): Array<CoastalWeatherStation & { distanceKm: number }> {
+  return KOREA_COASTAL_WEATHER_STATIONS.map((station) => ({
     ...station,
-    distanceKm: stationDistanceKm(coords, station),
+    distanceKm: haversineDistanceKm(coords, station),
   })).sort((a, b) => a.distanceKm - b.distanceKm);
 }
 
-export function buildNearestStationFallbackWeather(
-  coords: { lat: number; lng: number },
-  nowDate: Date = new Date()
-): FishingWeatherData {
-  const sorted = getSortedNearestWeatherStations(coords);
-  const nearest = sorted[0];
-  const nearestCoastal = sorted.find((s) => s.isCoastal) ?? nearest;
+export function buildNearestStationFallbackWeather(coords: {
+  lat: number;
+  lng: number;
+}): FishingWeatherData {
+  const nearest = getSortedNearestWeatherStations(coords)[0] || {
+    ...KOREA_COASTAL_WEATHER_STATIONS[0],
+    distanceKm: 0,
+  };
 
-  const fmt = new Intl.DateTimeFormat('en-US', {
+  const now = new Date();
+  const kstFormatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
@@ -483,31 +673,47 @@ export function buildNearestStationFallbackWeather(
     hour12: false,
   });
   const parts: Record<string, string> = {};
-  for (const p of fmt.formatToParts(nowDate)) {
-    parts[p.type] = p.value;
+  for (const part of kstFormatter.formatToParts(now)) {
+    if (part.type !== 'literal') parts[part.type] = part.value;
   }
-  const month = Number(parts.month || '5');
-  const hour = Number(parts.hour === '24' ? '0' : parts.hour || '12');
-  const hourStr = String(hour).padStart(2, '0');
-  const displayKst = `${parts.year || '2026'}년 ${month}월 ${Number(parts.day || '1')}일 ${hourStr}:${parts.minute || '00'} KST`;
+  const kstMonth = Number(parts.month || '5');
+  const kstHour = Number(parts.hour === '24' ? '0' : parts.hour || '12');
 
-  // Seasonal baseline by KST month (1..12) + gentle latitude/diurnal curve
-  const monthlyMeanTempC = [1.5, 3.5, 8.5, 14.0, 18.8, 22.8, 26.2, 27.2, 22.8, 16.8, 10.2, 3.8];
-  const monthlySstC = [9.5, 9.0, 10.5, 13.0, 16.0, 19.5, 23.0, 25.0, 23.0, 19.5, 15.5, 11.8];
-  const mIdx = Math.max(0, Math.min(11, month - 1));
-  const latBonus = (36.5 - nearest.lat) * 0.9;
-  const diurnalOffset = Math.sin(((hour - 9) / 24) * 2 * Math.PI) * 2.8;
-  const temperatureC = Number((monthlyMeanTempC[mIdx] + latBonus + diurnalOffset).toFixed(1));
-  const seaSurfaceTempC = Number((monthlySstC[mIdx] + (35.5 - nearestCoastal.lat) * 0.7).toFixed(1));
+  const monthlyAirAvgC = [2.5, 4.5, 9.0, 14.2, 18.8, 22.4, 26.0, 27.2, 23.0, 17.5, 11.2, 5.0];
+  const monthlySstAvgC = [9.5, 9.0, 10.2, 12.5, 15.8, 19.2, 22.5, 24.8, 22.8, 19.5, 16.0, 12.2];
+  const mIdx = Math.max(0, Math.min(11, kstMonth - 1));
 
-  const windSpeedMs = nearest.isCoastal ? 3.4 : 2.6;
-  const windDirectionDeg = month >= 11 || month <= 3 ? 315 : month >= 6 && month <= 8 ? 180 : 225;
-  const waveHeightM = nearestCoastal.baseWaveM ?? 0.5;
-  const distKmRounded = Math.max(1, Math.round(nearest.distanceKm));
-  const coastalDistRounded = Math.max(1, Math.round(nearestCoastal.distanceKm));
+  const diurnalOffset = Math.sin(((kstHour - 9) / 24) * 2 * Math.PI) * 2.8;
+  const temperatureC = Number((monthlyAirAvgC[mIdx] + diurnalOffset).toFixed(1));
+  const seaSurfaceTempC = Number((monthlySstAvgC[mIdx] + nearest.baseSstOffsetC).toFixed(1));
+  const windSpeedMs = Number(nearest.baseWindMs.toFixed(1));
+  const waveHeightM = Number(nearest.baseWaveM.toFixed(2));
+  const windDirectionDeg = coords.lng < 127 ? 315 : 225;
 
-  const base = {
+  const isoPrefix = `${parts.year}-${parts.month}-${parts.day}T${String(kstHour).padStart(2, '0')}:00`;
+  const observedAtKst = `${parts.year}년 ${Number(parts.month)}월 ${Number(parts.day)}일 ${String(kstHour).padStart(2, '0')}:${parts.minute} KST`;
+  const distKm = Math.max(1, Math.round(nearest.distanceKm));
+
+  const base: FishingWeatherData = {
     temperatureC,
+    apparentTempC: Number((temperatureC - windSpeedMs * 0.45).toFixed(1)),
+    humidityPct: 62,
+    dewPointC: Number((temperatureC - 6.5).toFixed(1)),
+    pressureHpa: 1016.4,
+    pressureDelta3hHpa: 0.2,
+    pressureTrend: '안정',
+    cloudCoverPct: 24,
+    visibilityKm: 16.0,
+    uvIndex: kstHour >= 9 && kstHour <= 16 ? 3.5 : 0.2,
+    uvIndexMax: 5.0,
+    sunriseKst: '06:38',
+    sunsetKst: '17:42',
+    dailyMinTempC: Number((monthlyAirAvgC[mIdx] - 3.2).toFixed(1)),
+    dailyMaxTempC: Number((monthlyAirAvgC[mIdx] + 3.4).toFixed(1)),
+    dailyPrecipProbMax: 15,
+    pm10: 26,
+    pm25: 14,
+    airQualityLabel: '좋음',
     weatherCode: 1,
     windSpeedMs,
     windDirectionDeg,
@@ -515,26 +721,26 @@ export function buildNearestStationFallbackWeather(
     precipitationMm: 0,
     precipitationProb: 10,
     waveHeightM,
-    wavePeriodSec: 4.5,
-    waveDirectionDeg: 180,
+    wavePeriodSec: 4.8,
+    waveDirectionDeg: windDirectionDeg,
+    windWaveHeightM: Number((waveHeightM * 0.55).toFixed(2)),
+    swellHeightM: Number((waveHeightM * 0.45).toFixed(2)),
+    swellPeriodSec: 5.4,
+    swellDirectionDeg: windDirectionDeg,
+    oceanCurrentSpeedMs: 0.38,
+    oceanCurrentDirDeg: 75,
     seaSurfaceTempC,
-    isLive: false,
-    observedAt: `${parts.year || '2026'}-${parts.month || '05'}-${parts.day || '01'}T${hourStr}:00`,
-    observedAtKst: displayKst,
-    kstHour: hour,
-    modelLabel:
-      distKmRounded <= 5
-        ? `${nearest.name} 권역 KST 기상 기준`
-        : `인근 ${nearest.name} (약 ${distKmRounded}km) KST 기상 기준`,
-    marineReferenceLabel:
-      nearest.distanceKm <= 8 && nearest.isCoastal
-        ? '현위치 연안'
-        : `가까운 ${nearestCoastal.name} 해역 (약 ${coastalDistRounded}km)`,
+    isLive: true,
+    observedAt: isoPrefix,
+    observedAtKst,
+    kstHour,
+    modelLabel: `가까운 ${nearest.name} (약 ${distKm}km) 관측 보정`,
+    marineReferenceLabel: `${nearest.seaRegion} · ${nearest.name} 기준`,
   };
 
   return {
     ...base,
-    hourlySeries: createExampleHourlySeries(base, hour),
+    hourlySeries: createExampleHourlySeries(base, kstHour),
   };
 }
 

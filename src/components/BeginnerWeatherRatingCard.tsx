@@ -26,6 +26,7 @@ interface BeginnerWeatherRatingCardProps {
   weather: FishingWeatherData | null;
   tideInfo?: RegionalTideSummary | null;
   isLoading: boolean;
+  error?: string | null;
   onRefresh: () => void;
   onReturnToDevice?: () => void;
   onOpenMap?: () => void;
@@ -100,6 +101,7 @@ export function BeginnerWeatherRatingCard({
   weather,
   tideInfo,
   isLoading,
+  error,
   onRefresh,
   onReturnToDevice,
   onOpenMap,
@@ -233,6 +235,12 @@ export function BeginnerWeatherRatingCard({
           </div>
         </div>
 
+        {error && (
+          <div className="rounded-xl border border-amber-400/35 bg-amber-950/30 px-3.5 py-2 text-xs text-amber-200">
+            {error}
+          </div>
+        )}
+
         {isLoading && !weather ? (
           <div className="py-5 text-xs text-[#A7C2D8] flex items-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-[#36D6E8]" />
@@ -361,6 +369,13 @@ export function BeginnerWeatherRatingCard({
                 <span className="text-[#A7C2D8]">{beginnerTip.rigAdvice}</span>
               </div>
             )}
+
+            <p
+              data-testid="weather-error-disclaimer"
+              className="text-[11px] text-[#A7C2D8]/90 px-1 leading-relaxed"
+            >
+              ※ 기상 정보에 대한 오류가 있을 수 있습니다. 기상 모델 격자·국지 해안 지형 특성상 실제 현장과 오차 범위가 발생할 수 있습니다 (기온 ±1.5~2.0°C · 풍속 ±1.5~2.5m/s · 파고 ±0.2~0.3m · 수온 ±1.0°C).
+            </p>
           </div>
         ) : (
           <div className="py-5 text-xs text-[#A7C2D8] flex items-center gap-2">

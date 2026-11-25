@@ -107,10 +107,8 @@ import {
 } from './utils/messenger';
 import {
   FishingWeatherData,
-  buildNearestStationFallbackWeather,
   calculateBeginnerFishingRating,
   createExampleHourlySeries,
-  getSortedNearestWeatherStations,
 } from './utils/fishingRating';
 import { calculateRegionalTideInfo } from './utils/koreaTide';
 import { getCurrentSeasonalRegulations } from './utils/seasonalRegulations';
@@ -378,158 +376,80 @@ export default function App() {
   const [isLoadingNearby, setIsLoadingNearby] = useState<boolean>(false);
   const [nearbyError, setNearbyError] = useState<string | null>(null);
 
-  // Live Location Weather & Beginner Star Rating (KST synchronized, zero-error nearest-station fallback)
-  const [weatherData, setWeatherData] = useState<FishingWeatherData | null>(() =>
-    buildNearestStationFallbackWeather(DEFAULT_KOREA_CENTER)
-  );
+  // Live Location Weather & Beginner Star Rating (KST synchronized)
+  const [weatherData, setWeatherData] = useState<FishingWeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
   const lastWeatherKstHourRef = useRef<string>(getKstParts().hour);
-  const weatherFetchSeqRef = useRef<number>(0);
 
   const fetchFishingWeather = useCallback(async (coords: LatLng) => {
-    const seq = ++weatherFetchSeqRef.current;
     setIsLoadingWeather(true);
-
-    const tryDirectClientOpenMeteo = async (
-      target: LatLng,
-      fallbackLabel?: string
-    ): Promise<FishingWeatherData | null> => {
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(
-          target.lat
-        )}&longitude=${encodeURIComponent(
-          target.lng
-        )}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability&forecast_days=2&wind_speed_unit=ms&timezone=Asia%2FSeoul`;
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) return null;
-        const json = await res.json().catch(() => null);
-        const cur = json?.current;
-        if (!cur || typeof cur.temperature_2m !== 'number') return null;
-
-        const nowKst = new Date();
-        const kstParts = getKstParts(nowKst);
-        const curHour = Number(kstParts.hour);
-        const hourlyTimes: string[] = Array.isArray(json?.hourly?.time) ? json.hourly.time : [];
-        const prefix = `${kstParts.year}-${kstParts.month}-${kstParts.day}T${kstParts.hour}`;
-        let startIdx = hourlyTimes.findIndex((t) => typeof t === 'string' && t.startsWith(prefix));
-        if (startIdx < 0) startIdx = 0;
-
-        const nearestFallback = buildNearestStationFallbackWeather(coords, nowKst);
-        const hourlySeries = [];
-        for (let i = startIdx; i < Math.min(hourlyTimes.length, startIdx + 12); i++) {
-          const iso = hourlyTimes[i];
-          const m = typeof iso === 'string' ? iso.match(/T(\d{2}):/) : null;
-          hourlySeries.push({
-            time: iso,
-            hourLabel: m ? `${Number(m[1])}시` : '--시',
-            temperatureC: Number(json.hourly?.temperature_2m?.[i] ?? cur.temperature_2m),
-            weatherCode: Math.round(Number(json.hourly?.weather_code?.[i] ?? cur.weather_code ?? 0)),
-            windSpeedMs: Number(json.hourly?.wind_speed_10m?.[i] ?? cur.wind_speed_10m ?? 0),
-            windGustsMs:
-              typeof json.hourly?.wind_gusts_10m?.[i] === 'number'
-                ? json.hourly.wind_gusts_10m[i]
-                : null,
-            windDirectionDeg: Math.round(
-              Number(json.hourly?.wind_direction_10m?.[i] ?? cur.wind_direction_10m ?? 0)
-            ),
-            precipitationProb:
-              typeof json.hourly?.precipitation_probability?.[i] === 'number'
-                ? Math.round(json.hourly.precipitation_probability[i])
-                : null,
-            waveHeightM: nearestFallback.waveHeightM,
-            seaSurfaceTempC: nearestFallback.seaSurfaceTempC ?? null,
-          });
-        }
-
-        return {
-          temperatureC: cur.temperature_2m,
-          weatherCode: Math.round(cur.weather_code ?? 0),
-          windSpeedMs: cur.wind_speed_10m ?? 0,
-          windDirectionDeg: Math.round(cur.wind_direction_10m ?? 0),
-          windGustsMs: typeof cur.wind_gusts_10m === 'number' ? cur.wind_gusts_10m : null,
-          precipitationMm: typeof cur.precipitation === 'number' ? cur.precipitation : 0,
-          precipitationProb: hourlySeries[0]?.precipitationProb ?? 10,
-          waveHeightM: nearestFallback.waveHeightM,
-          wavePeriodSec: nearestFallback.wavePeriodSec,
-          waveDirectionDeg: nearestFallback.waveDirectionDeg,
-          seaSurfaceTempC: nearestFallback.seaSurfaceTempC,
-          isLive: true,
-          observedAt: cur.time || prefix,
-          observedAtKst: formatKstDateTime(nowKst),
-          kstHour: curHour,
-          modelLabel: fallbackLabel || '고해상도 실시간 기상 모델',
-          marineReferenceLabel: nearestFallback.marineReferenceLabel,
-          hourlySeries:
-            hourlySeries.length > 0
-              ? hourlySeries
-              : createExampleHourlySeries(
-                  {
-                    temperatureC: cur.temperature_2m,
-                    weatherCode: Math.round(cur.weather_code ?? 0),
-                    windSpeedMs: cur.wind_speed_10m ?? 0,
-                    windDirectionDeg: Math.round(cur.wind_direction_10m ?? 0),
-                    waveHeightM: nearestFallback.waveHeightM,
-                    seaSurfaceTempC: nearestFallback.seaSurfaceTempC,
-                  },
-                  curHour
-                ),
-        };
-      } catch {
-        return null;
-      }
-    };
-
+    setWeatherError(null);
     try {
       const res = await fetch(
         `/api/weather/fishing?lat=${encodeURIComponent(coords.lat)}&lng=${encodeURIComponent(coords.lng)}`,
         { cache: 'no-store' }
       );
-      const data = await res.json().catch(() => null);
-      if (seq !== weatherFetchSeqRef.current) return;
-      if (res.ok && data && typeof data.temperatureC === 'number') {
-        setWeatherData(data as FishingWeatherData);
-        setIsLoadingWeather(false);
-        return;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data || typeof data.temperatureC !== 'number') {
+        throw new Error(data?.error || '기상 정보를 불러오지 못했습니다.');
       }
-    } catch {
-      /* fall through to direct / nearest-station lookup */
-    }
-
-    // Client-side direct attempt for exact map-selected location, then closest Korean weather stations
-    const direct = await tryDirectClientOpenMeteo(coords);
-    if (seq !== weatherFetchSeqRef.current) return;
-    if (direct) {
-      setWeatherData(direct);
-      setIsLoadingWeather(false);
-      return;
-    }
-
-    const nearestStations = getSortedNearestWeatherStations(coords).slice(0, 3);
-    for (const st of nearestStations) {
-      const nearbyWeather = await tryDirectClientOpenMeteo(
-        { lat: st.lat, lng: st.lng },
-        `가까운 ${st.name} (약 ${Math.max(1, Math.round(st.distanceKm))}km) 실시간 기상`
-      );
-      if (seq !== weatherFetchSeqRef.current) return;
-      if (nearbyWeather) {
-        setWeatherData(nearbyWeather);
-        setIsLoadingWeather(false);
-        return;
-      }
-    }
-
-    if (seq === weatherFetchSeqRef.current) {
-      setWeatherData(buildNearestStationFallbackWeather(coords));
+      setWeatherData(data as FishingWeatherData);
+    } catch (err: any) {
+      setWeatherError(err?.message || '실시간 기상 연결이 원활하지 않아 현재 대한민국 시각 기준 예시를 표시합니다.');
+      setWeatherData((prev) => {
+        if (prev) return prev;
+        const nowKst = new Date();
+        const currentKstHour = Number(getKstParts(nowKst).hour);
+        const fallbackBase = {
+          temperatureC: 18,
+          apparentTempC: 16.5,
+          humidityPct: 58,
+          dewPointC: 9.6,
+          pressureHpa: 1018.4,
+          pressureDelta3hHpa: 0.3,
+          pressureTrend: '안정' as const,
+          cloudCoverPct: 18,
+          visibilityKm: 18.5,
+          uvIndex: 2.8,
+          uvIndexMax: 4.5,
+          sunriseKst: '06:55',
+          sunsetKst: '17:28',
+          dailyMinTempC: 12.0,
+          dailyMaxTempC: 20.5,
+          dailyPrecipProbMax: 15,
+          pm10: 24,
+          pm25: 13,
+          airQualityLabel: '좋음',
+          weatherCode: 0,
+          windSpeedMs: 3.0,
+          windDirectionDeg: 315,
+          windGustsMs: 4.2,
+          precipitationMm: 0,
+          precipitationProb: 10,
+          waveHeightM: 0.8,
+          wavePeriodSec: 4.5,
+          waveDirectionDeg: 180,
+          windWaveHeightM: 0.35,
+          swellHeightM: 0.45,
+          swellPeriodSec: 5.2,
+          swellDirectionDeg: 195,
+          oceanCurrentSpeedMs: 0.42,
+          oceanCurrentDirDeg: 65,
+          seaSurfaceTempC: 16.0,
+          isLive: false,
+          observedAtKst: formatKstDateTime(nowKst),
+          kstHour: currentKstHour,
+        };
+        return {
+          ...fallbackBase,
+          hourlySeries: createExampleHourlySeries(fallbackBase, currentKstHour),
+        };
+      });
+    } finally {
       setIsLoadingWeather(false);
     }
   }, []);
-
-  // Ensure loading indicator clears cleanly after fetch completes
-  useEffect(() => {
-    if (weatherData && isLoadingWeather) {
-      setIsLoadingWeather(false);
-    }
-  }, [weatherData, isLoadingWeather]);
 
   // Weather dynamically follows the active location (defaults to device location, updates on map click/search)
   const weatherTargetCoords = activeLocation.coords;
@@ -1165,13 +1085,10 @@ export default function App() {
   }, [liveTrackingEnabled, geoPermissionState, applyGpsFix]);
 
   const handleSelectSpot = useCallback((spot: FishingSpot) => {
-    const coords = { lat: spot.lat, lng: spot.lng };
-    locationSourceRef.current = 'spot';
-    activeCoordsRef.current = coords;
     setActiveLocation({
       label: spot.name,
       address: spot.location,
-      coords,
+      coords: { lat: spot.lat, lng: spot.lng },
       region: spot.region,
       source: 'spot',
       spot,
@@ -1180,8 +1097,6 @@ export default function App() {
 
   const handleSelectCustomPoint = useCallback(
     async (coords: LatLng, customLabel?: string) => {
-      locationSourceRef.current = 'map-click';
-      activeCoordsRef.current = coords;
       const region = inferKoreaSeaRegion(coords);
       setActiveLocation({
         label: customLabel || `지도 선택 지점 (${region})`,
@@ -1222,14 +1137,11 @@ export default function App() {
       if (spot.curatedSpot) {
         handleSelectSpot(spot.curatedSpot);
       } else {
-        const coords = { lat: spot.lat, lng: spot.lng };
-        locationSourceRef.current = 'map-click';
-        activeCoordsRef.current = coords;
         setActiveLocation({
           label: spot.name,
           address: spot.address,
-          coords,
-          region: inferKoreaSeaRegion(coords),
+          coords: { lat: spot.lat, lng: spot.lng },
+          region: inferKoreaSeaRegion({ lat: spot.lat, lng: spot.lng }),
           source: 'map-click',
         });
       }
@@ -1887,6 +1799,7 @@ export default function App() {
               weather={weatherData}
               tideInfo={regionalTide}
               isLoading={isLoadingWeather}
+              error={weatherError}
               onRefresh={() => fetchFishingWeather(weatherTargetCoords)}
               onReturnToDevice={handleReturnToDeviceLocation}
               onOpenMap={() => setActiveTab('spots')}
@@ -2221,6 +2134,15 @@ export default function App() {
                 </h2>
                 <p className="text-xs sm:text-sm text-[#A7C2D8] mt-1">
                   이름·특징 검색, 사진 AI 판별, 직접 입력 조건 찾기로 물고기를 분석하고 식용 여부와 추천 요리법까지 한 번에 확인하세요.
+                </p>
+                <p
+                  data-testid="ai-accuracy-disclaimer"
+                  className="text-xs text-amber-200/95 bg-amber-950/35 border border-amber-500/30 rounded-lg px-3 py-2 mt-2.5 inline-flex items-start gap-2 leading-relaxed"
+                >
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    AI는 언제나 정확한 정답만 말하지 않으며 정확한 정답에 가깝게 하기 위해 특징을 자세히 입력해 주세요.
+                  </span>
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
@@ -2639,6 +2561,9 @@ export default function App() {
                       placeholder="예: 몸통은 어두운 갈색에 얼룩무늬가 있고 등지느러미 가시가 억셈 / 크기 약 25cm / 방파제 바닥에서 잡힘"
                       className="w-full bg-[#0B2948] border border-[#4B9FE8]/30 rounded-xl px-3.5 py-2.5 text-xs text-[#F4FAFF] placeholder-[#A7C2D8]/50 focus:outline-none focus:border-[#36D6E8]"
                     />
+                    <p className="text-[11px] text-amber-200/90 leading-relaxed pt-0.5">
+                      ※ AI는 언제나 정확한 정답만 말하지 않으며 정확한 정답에 가깝게 하기 위해 특징을 자세히 입력해 주세요.
+                    </p>
                   </div>
 
                   <button
@@ -3004,6 +2929,9 @@ export default function App() {
                   <p className="text-xs text-[#A7C2D8]">
                     선택하신 지역을 기준으로 한국 기상청(KMA) 보정 기온·풍속·파고·수온과 물때({regionalTide.multaeName}, {regionalTide.currentPhaseText})를 계산합니다.
                     {weatherData?.marineReferenceLabel ? ` (${weatherData.marineReferenceLabel})` : ''}
+                  </p>
+                  <p className="text-[11px] text-[#A7C2D8]/85">
+                    ※ 수치예보 격자·국지 지형 특성상 오차 범위가 발생할 수 있습니다 (기온 ±1.5~2.0°C, 풍속 ±1.5~2.5m/s, 파고 ±0.2~0.3m, 수온 ±1.0°C).
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3 shrink-0">
