@@ -1,0 +1,482 @@
+{
+  "entities": {
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Publicly discoverable angler profile without PII for chat display, custom nickname, and 1:1 DM lookup.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "favoriteRegion": {
+          "type": "string",
+          "enum": ["전체", "동해", "서해", "남해", "제주"]
+        },
+        "isDiscoverable": {
+          "type": "boolean"
+        },
+        "nicknameSet": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "photoURL", "favoriteRegion", "isDiscoverable", "updatedAt"]
+    },
+    "UserSecret": {
+      "title": "UserSecret",
+      "description": "Private user PII document strictly isolated to the owning user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "updatedAt"]
+    },
+    "OpenRoom": {
+      "title": "OpenRoom",
+      "description": "Public open chat room or private invite-code room created by signed-in anglers.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "region": {
+          "type": "string",
+          "enum": ["전체", "동해", "서해", "남해", "제주"]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "inviteCode": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[a-zA-Z0-9_\\-]*$"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "creatorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "lastMessageText": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "lastMessageAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "roomId",
+        "title",
+        "region",
+        "description",
+        "isPublic",
+        "createdBy",
+        "creatorName",
+        "lastMessageText",
+        "lastMessageAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OpenRoomMember": {
+      "title": "OpenRoomMember",
+      "description": "Membership record for a user who joined a public or private chat room.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "inviteCode": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["roomId", "uid", "displayName", "photoURL", "joinedAt"]
+    },
+    "OpenRoomMessage": {
+      "title": "OpenRoomMessage",
+      "description": "Message posted inside a public or private chat room by a joined member.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "senderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "senderPhoto": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "sharedSpotName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "roomId",
+        "isPublic",
+        "senderId",
+        "senderName",
+        "senderPhoto",
+        "text",
+        "sharedSpotName",
+        "createdAt"
+      ]
+    },
+    "RoomInvite": {
+      "title": "RoomInvite",
+      "description": "Private chat room invite-code lookup record (no list access; exact code get only).",
+      "type": "object",
+      "properties": {
+        "inviteCode": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "region": {
+          "type": "string",
+          "enum": ["전체", "동해", "서해", "남해", "제주"]
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["inviteCode", "roomId", "title", "region", "createdBy", "createdAt"]
+    },
+    "UserRoomLink": {
+      "title": "UserRoomLink",
+      "description": "User-owned pointer to joined public or private rooms for persistent membership listing.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "region": {
+          "type": "string",
+          "enum": ["전체", "동해", "서해", "남해", "제주"]
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "inviteCode": {
+          "type": "string",
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]*$"
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["roomId", "uid", "title", "region", "inviteCode", "joinedAt"]
+    },
+    "DmThread": {
+      "title": "DmThread",
+      "description": "Private 1:1 direct message conversation metadata between exactly two signed-in anglers.",
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "user1Uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "user1Name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "user1Photo": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "user2Uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "user2Name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "user2Photo": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "participantUids": {
+          "type": "array",
+          "description": "Sorted tuple [user1Uid, user2Uid] with exact length 2"
+        },
+        "lastMessageText": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "lastMessageAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "threadId",
+        "user1Uid",
+        "user1Name",
+        "user1Photo",
+        "user2Uid",
+        "user2Name",
+        "user2Photo",
+        "participantUids",
+        "lastMessageText",
+        "lastMessageAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DmMessage": {
+      "title": "DmMessage",
+      "description": "Private 1:1 message inside a DM thread.",
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "recipientId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "participantUids": {
+          "type": "array",
+          "description": "Sorted tuple [user1Uid, user2Uid] with exact length 2"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "sharedSpotName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "threadId",
+        "senderId",
+        "senderName",
+        "recipientId",
+        "participantUids",
+        "text",
+        "sharedSpotName",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/public_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Public angler profile used for custom nickname display and starting 1:1 DMs."
+    },
+    "/user_secrets/{userId}": {
+      "schema": { "$ref": "#/entities/UserSecret" },
+      "description": "Private user PII (email) strictly restricted to the authenticated owner."
+    },
+    "/open_rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/OpenRoom" },
+      "description": "Public open chat rooms and invite-code-protected private rooms."
+    },
+    "/open_rooms/{roomId}/members/{memberId}": {
+      "schema": { "$ref": "#/entities/OpenRoomMember" },
+      "description": "Join membership records for a public or private chat room."
+    },
+    "/open_rooms/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/OpenRoomMessage" },
+      "description": "Messages posted in a chat room by joined members."
+    },
+    "/room_invites/{inviteCode}": {
+      "schema": { "$ref": "#/entities/RoomInvite" },
+      "description": "Invite code mapping for joining private rooms by exact code lookup."
+    },
+    "/user_room_links/{userId}/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/UserRoomLink" },
+      "description": "User-owned list of joined private rooms."
+    },
+    "/dm_threads/{threadId}": {
+      "schema": { "$ref": "#/entities/DmThread" },
+      "description": "Private 1:1 DM threads accessible only to the two participating users."
+    },
+    "/dm_threads/{threadId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/DmMessage" },
+      "description": "Private 1:1 DM messages accessible only to the two participating users."
+    }
+  }
+}

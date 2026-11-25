@@ -1,0 +1,6 @@
+{
+  "name": "일타만선 - 스마트 바다낚시 도우미",
+  "description": "AI 어종 판별, 금어기·독성 경고, 낚시 환경 및 조과 기록장까지 제공하는 스마트 바다낚시 도우미 앱",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

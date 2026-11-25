@@ -1,0 +1,416 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Global Hardened Helpers
+    // =========================================================================
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidInviteCode(code) {
+      return code is string && code.size() >= 4 && code.size() <= 20 && code.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidRegion(reg) {
+      return reg in ['전체', '동해', '서해', '남해', '제주'];
+    }
+
+    // =========================================================================
+    // Entity Validation Blueprints
+    // =========================================================================
+    function isValidPublicProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'photoURL', 'favoriteRegion', 'isDiscoverable', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'favoriteRegion', 'isDiscoverable', 'nicknameSet', 'updatedAt'])
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 50
+        && data.photoURL is string && data.photoURL.size() <= 500
+        && isValidRegion(data.favoriteRegion)
+        && data.isDiscoverable is bool
+        && (!('nicknameSet' in data) || data.nicknameSet is bool)
+        && data.updatedAt == request.time;
+    }
+
+    function isValidUserSecret(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'updatedAt'])
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.updatedAt == request.time;
+    }
+
+    function isValidOpenRoom(data, roomId) {
+      return data.keys().hasAll([
+          'roomId', 'title', 'region', 'description', 'isPublic',
+          'createdBy', 'creatorName', 'lastMessageText', 'lastMessageAt',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'roomId', 'title', 'region', 'description', 'isPublic', 'inviteCode',
+          'createdBy', 'creatorName', 'lastMessageText', 'lastMessageAt',
+          'createdAt', 'updatedAt'
+        ])
+        && data.roomId == roomId
+        && isValidId(data.roomId)
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 60
+        && isValidRegion(data.region)
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 200
+        && data.isPublic is bool
+        && (
+          (data.isPublic == true && (!('inviteCode' in data) || (data.inviteCode is string && data.inviteCode.size() == 0)))
+          ||
+          (data.isPublic == false && ('inviteCode' in data) && isValidInviteCode(data.inviteCode))
+        )
+        && isValidId(data.createdBy)
+        && data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 50
+        && data.lastMessageText is string && data.lastMessageText.size() <= 300
+        && data.lastMessageAt is timestamp
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidOpenRoomMember(data, roomId, memberId) {
+      return data.keys().hasAll(['roomId', 'uid', 'displayName', 'photoURL', 'joinedAt'])
+        && data.keys().hasOnly(['roomId', 'uid', 'displayName', 'photoURL', 'inviteCode', 'joinedAt'])
+        && data.roomId == roomId
+        && data.uid == memberId
+        && data.uid == request.auth.uid
+        && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 50
+        && data.photoURL is string && data.photoURL.size() <= 500
+        && (!('inviteCode' in data) || (data.inviteCode is string && data.inviteCode.size() <= 32))
+        && data.joinedAt is timestamp;
+    }
+
+    function isValidOpenRoomMessage(data, roomId) {
+      return data.keys().hasAll([
+          'roomId', 'isPublic', 'senderId', 'senderName',
+          'senderPhoto', 'text', 'sharedSpotName', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'roomId', 'isPublic', 'senderId', 'senderName',
+          'senderPhoto', 'text', 'sharedSpotName', 'createdAt'
+        ])
+        && data.roomId == roomId
+        && data.isPublic is bool
+        && data.senderId == request.auth.uid
+        && isValidId(data.senderId)
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 50
+        && data.senderPhoto is string && data.senderPhoto.size() <= 500
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 1000
+        && data.sharedSpotName is string && data.sharedSpotName.size() <= 100
+        && data.createdAt == request.time;
+    }
+
+    function isValidRoomInvite(data, inviteCode) {
+      return data.keys().hasAll(['inviteCode', 'roomId', 'title', 'region', 'createdBy', 'createdAt'])
+        && data.keys().hasOnly(['inviteCode', 'roomId', 'title', 'region', 'createdBy', 'createdAt'])
+        && data.inviteCode == inviteCode
+        && isValidInviteCode(data.inviteCode)
+        && isValidId(data.roomId)
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 60
+        && isValidRegion(data.region)
+        && isValidId(data.createdBy)
+        && data.createdAt == request.time;
+    }
+
+    function isValidUserRoomLink(data, userId, roomId) {
+      return data.keys().hasAll(['roomId', 'uid', 'title', 'region', 'inviteCode', 'joinedAt'])
+        && data.keys().hasOnly(['roomId', 'uid', 'title', 'region', 'isPublic', 'inviteCode', 'joinedAt'])
+        && data.roomId == roomId
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && isValidId(data.roomId)
+        && isValidId(data.uid)
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 60
+        && isValidRegion(data.region)
+        && (!('isPublic' in data) || data.isPublic is bool)
+        && data.inviteCode is string
+        && data.inviteCode.size() <= 20
+        && data.inviteCode.matches('^[a-zA-Z0-9_\\-]*$')
+        && (!('isPublic' in data) || data.isPublic == true || isValidInviteCode(data.inviteCode))
+        && data.joinedAt is timestamp;
+    }
+
+    function isValidDmThread(data, threadId) {
+      return data.keys().hasAll([
+          'threadId', 'user1Uid', 'user1Name', 'user1Photo',
+          'user2Uid', 'user2Name', 'user2Photo', 'participantUids',
+          'lastMessageText', 'lastMessageAt', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'threadId', 'user1Uid', 'user1Name', 'user1Photo',
+          'user2Uid', 'user2Name', 'user2Photo', 'participantUids',
+          'lastMessageText', 'lastMessageAt', 'createdAt', 'updatedAt'
+        ])
+        && data.threadId == threadId
+        && isValidId(data.threadId)
+        && isValidId(data.user1Uid)
+        && isValidId(data.user2Uid)
+        && data.user1Uid < data.user2Uid
+        && data.threadId == (data.user1Uid + '__' + data.user2Uid)
+        && data.user1Name is string && data.user1Name.size() >= 1 && data.user1Name.size() <= 50
+        && data.user1Photo is string && data.user1Photo.size() <= 500
+        && data.user2Name is string && data.user2Name.size() >= 1 && data.user2Name.size() <= 50
+        && data.user2Photo is string && data.user2Photo.size() <= 500
+        && data.participantUids is list
+        && data.participantUids.size() == 2
+        && data.participantUids[0] == data.user1Uid
+        && data.participantUids[1] == data.user2Uid
+        && data.lastMessageText is string && data.lastMessageText.size() <= 300
+        && data.lastMessageAt is timestamp
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidDmMessage(data, threadId) {
+      return data.keys().hasAll([
+          'threadId', 'senderId', 'senderName', 'recipientId',
+          'participantUids', 'text', 'sharedSpotName', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'threadId', 'senderId', 'senderName', 'recipientId',
+          'participantUids', 'text', 'sharedSpotName', 'createdAt'
+        ])
+        && data.threadId == threadId
+        && data.senderId == request.auth.uid
+        && isValidId(data.senderId)
+        && isValidId(data.recipientId)
+        && data.recipientId != data.senderId
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 50
+        && data.participantUids is list
+        && data.participantUids.size() == 2
+        && data.participantUids[0] is string
+        && data.participantUids[1] is string
+        && data.senderId in data.participantUids
+        && data.recipientId in data.participantUids
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 1000
+        && data.sharedSpotName is string && data.sharedSpotName.size() <= 100
+        && data.createdAt == request.time;
+    }
+
+    // =========================================================================
+    // Collections
+    // =========================================================================
+
+    // Public angler directory (No PII; supports custom nickname)
+    match /public_profiles/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || resource == null || existing().isDiscoverable == true);
+      allow list: if isSignedIn() && resource.data.isDiscoverable == true;
+      allow create: if isVerified() && isOwner(userId) && isValidId(userId)
+        && isValidPublicProfile(incoming(), userId);
+      allow update: if isVerified() && isOwner(userId) && isValidId(userId)
+        && isValidPublicProfile(incoming(), userId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'favoriteRegion', 'isDiscoverable', 'nicknameSet', 'updatedAt'])
+        && incoming().uid == existing().uid;
+    }
+
+    // Isolated PII collection (Owner only)
+    match /user_secrets/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isVerified() && isOwner(userId) && isValidId(userId)
+        && isValidUserSecret(incoming(), userId);
+      allow update: if isVerified() && isOwner(userId) && isValidId(userId)
+        && isValidUserSecret(incoming(), userId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'updatedAt'])
+        && incoming().uid == existing().uid;
+    }
+
+    // Open & Private Chat Rooms
+    match /open_rooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId) && (
+        resource == null
+        || existing().isPublic == true
+        || existing().createdBy == request.auth.uid
+        || exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
+      );
+      allow list: if isSignedIn() && (
+        resource.data.isPublic == true
+        || resource.data.createdBy == request.auth.uid
+      );
+      allow create: if isVerified() && isValidId(roomId)
+        && isValidOpenRoom(incoming(), roomId)
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().lastMessageAt == request.time
+        && existsAfter(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid));
+      allow update: if isVerified() && isValidId(roomId)
+        && isValidOpenRoom(incoming(), roomId)
+        && incoming().roomId == existing().roomId
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdBy == existing().createdBy
+        && incoming().creatorName == existing().creatorName
+        && incoming().createdAt == existing().createdAt
+        && (
+          // Tier 1: Room creator edits room metadata
+          (existing().createdBy == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'region', 'description', 'updatedAt']))
+          ||
+          // Tier 2: Joined member updates room latest activity timestamp/status
+          (exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
+            && incoming().diff(existing()).affectedKeys().hasOnly(['lastMessageText', 'lastMessageAt', 'updatedAt'])
+            && incoming().lastMessageAt == request.time)
+        );
+      // Host-only room deletion
+      allow delete: if isSignedIn() && isValidId(roomId)
+        && existing().createdBy == request.auth.uid;
+
+      // Room Members (Master Gate + Invite Code Gate for Private Rooms)
+      match /members/{memberId} {
+        allow get: if isSignedIn() && isValidId(roomId) && isValidId(memberId)
+          && (memberId == request.auth.uid || (resource != null && existing().roomId == roomId));
+        allow list: if isSignedIn() && resource.data.roomId == roomId && resource.data.uid is string;
+        allow create: if isVerified() && isValidId(roomId) && isValidId(memberId)
+          && memberId == request.auth.uid
+          && isValidOpenRoomMember(incoming(), roomId, memberId)
+          && incoming().joinedAt == request.time
+          && existsAfter(/databases/$(database)/documents/open_rooms/$(roomId))
+          && (
+            getAfter(/databases/$(database)/documents/open_rooms/$(roomId)).data.isPublic == true
+            || (
+              ('inviteCode' in incoming())
+              && incoming().inviteCode == getAfter(/databases/$(database)/documents/open_rooms/$(roomId)).data.inviteCode
+            )
+          );
+        allow update: if isVerified() && isValidId(roomId) && isValidId(memberId)
+          && memberId == request.auth.uid
+          && isValidOpenRoomMember(incoming(), roomId, memberId)
+          && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL'])
+          && incoming().roomId == existing().roomId
+          && incoming().uid == existing().uid
+          && incoming().joinedAt == existing().joinedAt;
+        allow delete: if isSignedIn() && isValidId(roomId) && isValidId(memberId)
+          && (
+            memberId == request.auth.uid
+            || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+          );
+      }
+
+      // Room Messages (Strictly limited to joined members, plus room host for deletion cleanup)
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(roomId) && isValidId(messageId)
+          && (resource == null || (
+            existing().roomId == roomId
+            && (
+              exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
+              || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+            )
+          ));
+        allow list: if isSignedIn() && resource.data.roomId == roomId
+          && (
+            exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
+            || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+          );
+        allow create: if isVerified() && isValidId(roomId) && isValidId(messageId)
+          && isValidOpenRoomMessage(incoming(), roomId)
+          && (
+            exists(/databases/$(database)/documents/open_rooms/$(roomId)/members/$(request.auth.uid))
+            || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+          )
+          && get(/databases/$(database)/documents/open_rooms/$(roomId)).data.isPublic == incoming().isPublic;
+        allow delete: if isSignedIn() && isValidId(roomId) && isValidId(messageId)
+          && (
+            existing().senderId == request.auth.uid
+            || get(/databases/$(database)/documents/open_rooms/$(roomId)).data.createdBy == request.auth.uid
+          );
+      }
+    }
+
+    // Private Room Invite Code Lookup (get by exact code only, zero list)
+    match /room_invites/{inviteCode} {
+      allow get: if isSignedIn() && isValidId(inviteCode);
+      allow list: if false;
+      allow create: if isVerified() && isValidId(inviteCode)
+        && isValidRoomInvite(incoming(), inviteCode)
+        && incoming().createdBy == request.auth.uid
+        && getAfter(/databases/$(database)/documents/open_rooms/$(incoming().roomId)).data.createdBy == request.auth.uid
+        && getAfter(/databases/$(database)/documents/open_rooms/$(incoming().roomId)).data.inviteCode == inviteCode;
+      allow delete: if isSignedIn() && isValidId(inviteCode)
+        && existing().createdBy == request.auth.uid;
+    }
+
+    // User-owned Room Join Links (public & private joined rooms)
+    match /user_room_links/{userId}/rooms/{roomId} {
+      allow get: if isOwner(userId) && isValidId(roomId);
+      allow list: if isOwner(userId) && resource.data.uid == request.auth.uid;
+      allow create: if isVerified() && isOwner(userId) && isValidId(roomId)
+        && isValidUserRoomLink(incoming(), userId, roomId)
+        && incoming().joinedAt == request.time;
+      allow update: if isVerified() && isOwner(userId) && isValidId(roomId)
+        && isValidUserRoomLink(incoming(), userId, roomId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'region', 'isPublic', 'inviteCode'])
+        && incoming().joinedAt == existing().joinedAt;
+      allow delete: if isOwner(userId) && isValidId(roomId);
+    }
+
+    // Private 1:1 Direct Message Threads
+    match /dm_threads/{threadId} {
+      allow get: if isSignedIn() && isValidId(threadId)
+        && (request.auth.uid in existing().participantUids);
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.participantUids);
+      allow create: if isVerified() && isValidId(threadId)
+        && isValidDmThread(incoming(), threadId)
+        && (request.auth.uid in incoming().participantUids)
+        && incoming().createdAt == request.time
+        && incoming().lastMessageAt == request.time;
+      allow update: if isVerified() && isValidId(threadId)
+        && (request.auth.uid in existing().participantUids)
+        && isValidDmThread(incoming(), threadId)
+        && incoming().threadId == existing().threadId
+        && incoming().user1Uid == existing().user1Uid
+        && incoming().user2Uid == existing().user2Uid
+        && incoming().participantUids == existing().participantUids
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['lastMessageText', 'lastMessageAt', 'updatedAt'])
+        && incoming().lastMessageAt == request.time;
+      allow delete: if isSignedIn() && isValidId(threadId)
+        && (request.auth.uid in existing().participantUids);
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(threadId) && isValidId(messageId)
+          && (request.auth.uid in existing().participantUids);
+        allow list: if isSignedIn() && (request.auth.uid in resource.data.participantUids);
+        allow create: if isVerified() && isValidId(threadId) && isValidId(messageId)
+          && isValidDmMessage(incoming(), threadId)
+          && (request.auth.uid in incoming().participantUids)
+          && getAfter(/databases/$(database)/documents/dm_threads/$(threadId)).data.participantUids == incoming().participantUids;
+        allow delete: if isSignedIn() && isValidId(threadId) && isValidId(messageId)
+          && (request.auth.uid in existing().participantUids)
+          && (
+            existing().senderId == request.auth.uid
+            || !exists(/databases/$(database)/documents/dm_threads/$(threadId))
+          );
+      }
+    }
+  }
+}

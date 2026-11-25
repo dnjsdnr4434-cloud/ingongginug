@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+:root {
+  --db-bg-deep: #061B33;
+  --db-bg-ocean: #0B2948;
+  --db-surface-card: #103653;
+  --db-accent-cyan: #36D6E8;
+  --db-accent-aqua: #4B9FE8;
+  --db-text-primary: #F4FAFF;
+  --db-text-secondary: #A7C2D8;
+  --db-border-subtle: rgba(75, 159, 232, 0.24);
+  --db-border-cyan: rgba(54, 214, 232, 0.34);
+}
+
+@layer base {
+  html,
+  body {
+    background-color: #061B33;
+    color: #F4FAFF;
+    font-family: 'Plus Jakarta Sans', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-x: hidden;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+.deep-blue-atmosphere {
+  background-color: #061B33;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(54, 214, 232, 0.16), transparent 62%),
+    radial-gradient(ellipse 65% 45% at 88% 15%, rgba(75, 159, 232, 0.13), transparent 58%),
+    radial-gradient(ellipse 75% 55% at 12% 85%, rgba(11, 41, 72, 0.9), transparent 65%),
+    linear-gradient(180deg, #061B33 0%, #082341 55%, #061B33 100%);
+}
+
+.glass-card {
+  background: linear-gradient(155deg, rgba(16, 54, 83, 0.84) 0%, rgba(11, 41, 72, 0.78) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(75, 159, 232, 0.26);
+  box-shadow:
+    0 14px 36px -14px rgba(2, 12, 26, 0.65),
+    inset 0 1px 0 rgba(244, 250, 255, 0.08);
+}
+
+.glass-subcard {
+  background: rgba(6, 27, 51, 0.56);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(75, 159, 232, 0.22);
+}
+
+.btn-cyan-gradient {
+  background: linear-gradient(135deg, #36D6E8 0%, #4B9FE8 100%);
+  color: #041529;
+  font-weight: 700;
+  box-shadow: 0 8px 22px -6px rgba(54, 214, 232, 0.45);
+}
+
+.btn-cyan-gradient:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 10px 26px -6px rgba(54, 214, 232, 0.6);
+}
+
+.btn-aqua-gradient {
+  background: linear-gradient(135deg, #1769AA 0%, #2488BD 100%);
+  color: #F4FAFF;
+  border: 1px solid rgba(54, 214, 232, 0.35);
+}
+
+.btn-aqua-gradient:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1D7AC4 0%, #2B9AD4 100%);
+}
+
+.nav-glass-bottom {
+  background: rgba(6, 27, 51, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(75, 159, 232, 0.25);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.24s ease-out;
+}
+
+/* Custom slim scrollbar for Deep Blue surfaces */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #061B33;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(75, 159, 232, 0.35);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(54, 214, 232, 0.55);
+}
