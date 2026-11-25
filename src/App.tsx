@@ -29,7 +29,6 @@ import {
   Edit3,
   Utensils,
   Microscope,
-  Download,
 } from 'lucide-react';
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -1476,7 +1475,7 @@ export default function App() {
       )}
 
       {/* HEADER */}
-      <header className="bg-[#061B33]/85 backdrop-blur-xl border-b border-[#4B9FE8]/20 sticky top-0 z-40 shadow-lg">
+      <header className="bg-[#061B33]/65 backdrop-blur-2xl border-b border-[#4B9FE8]/25 sticky top-0 z-40 shadow-[0_8px_32px_rgba(2,12,26,0.45),inset_0_-1px_0_rgba(244,250,255,0.08)]">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
           <button
             type="button"
@@ -1499,7 +1498,7 @@ export default function App() {
           {/* Desktop Nav */}
           <nav
             aria-label="주 메뉴"
-            className="hidden lg:flex items-center gap-1 bg-[#0B2948]/80 p-1 rounded-xl border border-[#4B9FE8]/25 text-sm"
+            className="hidden lg:flex items-center gap-1 bg-[#0B2948]/45 backdrop-blur-xl p-1 rounded-xl border border-[#4B9FE8]/28 shadow-[inset_0_1px_0_rgba(244,250,255,0.12)] text-sm"
           >
             <button
               type="button"
@@ -1557,18 +1556,8 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Right Action / ZIP Export / Google Account & Mobile Guide shortcut */}
+          {/* Right Action / Google Account & Mobile Guide shortcut */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <a
-              href="/iltamanseon-deepblue.zip"
-              download="iltamanseon-deepblue.zip"
-              title="프레임워크 없는 단일 HTML(.zip) 패키지 다운로드"
-              className="hidden sm:inline-flex items-center gap-1.5 min-h-[38px] px-2.5 py-1.5 rounded-lg bg-[#103653]/80 hover:bg-[#174a70] text-[#36D6E8] border border-[#36D6E8]/35 text-xs font-semibold whitespace-nowrap transition-colors"
-            >
-              <Download className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden xl:inline">단일 HTML (.zip)</span>
-              <span className="xl:hidden">.zip</span>
-            </a>
 
             <button
               type="button"
