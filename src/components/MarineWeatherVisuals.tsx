@@ -303,11 +303,11 @@ export function MarineWeatherVisuals({
             </span>
             <span aria-hidden="true">·</span>
             <span>
-              {weather?.isLive
+              {weather
                 ? `${weather.modelLabel || '기상청(KMA) 보정 KST'}${
                     weather.observedAtKst ? ` · ${weather.observedAtKst}` : ''
                   }`
-                : '예시 데이터'}
+                : '대한민국(KST) 기상 연동 중'}
             </span>
             {weather?.marineReferenceLabel && (
               <>

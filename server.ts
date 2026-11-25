@@ -10,6 +10,10 @@ import {
   extractClientIpFromHeader,
   isInKoreaBounds,
 } from './src/utils/geo';
+import {
+  buildNearestStationFallbackWeather,
+  getSortedNearestWeatherStations,
+} from './src/utils/fishingRating';
 import { INITIAL_FISH_ENCYCLOPEDIA } from './src/data/fishingData';
 
 dotenv.config();
@@ -20,10 +24,12 @@ interface CacheEntry<T> {
 }
 
 const MAP_CACHE_TTL_MS = 15 * 60 * 1000;
+const WEATHER_CACHE_TTL_MS = 5 * 60 * 1000;
 const FISH_IMAGE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const reverseGeocodeCache = new Map<string, CacheEntry<any>>();
 const nearbySpotsCache = new Map<string, CacheEntry<any[]>>();
 const placeSearchCache = new Map<string, CacheEntry<any[]>>();
+const weatherCache = new Map<string, CacheEntry<any>>();
 const fishImageCache = new Map<string, CacheEntry<string>>();
 let googleRestCooldownUntil = 0;
 
@@ -1389,14 +1395,13 @@ ${optionalContextLines ? `[참고 해역·환경]\n${optionalContextLines}` : ''
     { name: '제주 탑동 해역', lat: 33.521, lng: 126.528 },
   ];
 
-  function buildForecastModelUrl(lat: number, lng: number, model: string): string {
+  function buildForecastModelUrl(lat: number, lng: number, model?: string): string {
+    const modelParam = model ? `&models=${encodeURIComponent(model)}` : '';
     return `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(
       lat
     )}&longitude=${encodeURIComponent(
       lng
-    )}&models=${encodeURIComponent(
-      model
-    )}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,precipitation&past_days=1&forecast_days=2&wind_speed_unit=ms&timezone=Asia%2FSeoul`;
+    )}${modelParam}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation_probability,precipitation&forecast_days=2&wind_speed_unit=ms&timezone=Asia%2FSeoul`;
   }
 
   function buildMarineUrl(lat: number, lng: number): string {
@@ -1404,7 +1409,7 @@ ${optionalContextLines ? `[참고 해역·환경]\n${optionalContextLines}` : ''
       lat
     )}&longitude=${encodeURIComponent(
       lng
-    )}&current=wave_height,wave_direction,wave_period,sea_surface_temperature&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature&past_days=1&forecast_days=2&timezone=Asia%2FSeoul`;
+    )}&current=wave_height,wave_direction,wave_period,sea_surface_temperature&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature&forecast_days=2&timezone=Asia%2FSeoul`;
   }
 
   function isFiniteNum(v: unknown): v is number {
@@ -1441,49 +1446,146 @@ ${optionalContextLines ? `[참고 해역·환경]\n${optionalContextLines}` : ''
     return null;
   }
 
-  // KMA-calibrated live weather & marine wave/SST proxy strictly for device coordinates
-  app.get('/api/weather/fishing', async (req, res) => {
-    const lat = Number(req.query.lat);
-    const lng = Number(req.query.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      res.status(400).json({ error: '유효한 위도/경도 값이 필요합니다.' });
-      return;
+  async function fetchForecastBundleForPoint(targetLat: number, targetLng: number) {
+    const [bestSettled, kmaSettled, jmaSettled] = await Promise.allSettled([
+      fetch(buildForecastModelUrl(targetLat, targetLng, 'best_match'), { signal: AbortSignal.timeout(6500) }),
+      fetch(buildForecastModelUrl(targetLat, targetLng, 'kma_seamless'), { signal: AbortSignal.timeout(5500) }),
+      fetch(buildForecastModelUrl(targetLat, targetLng, 'jma_seamless'), { signal: AbortSignal.timeout(5500) }),
+    ]);
+
+    let bestJson =
+      bestSettled.status === 'fulfilled' && bestSettled.value.ok
+        ? await bestSettled.value.json().catch(() => null)
+        : null;
+    const kmaJson =
+      kmaSettled.status === 'fulfilled' && kmaSettled.value.ok
+        ? await kmaSettled.value.json().catch(() => null)
+        : null;
+    const jmaJson =
+      jmaSettled.status === 'fulfilled' && jmaSettled.value.ok
+        ? await jmaSettled.value.json().catch(() => null)
+        : null;
+
+    let primaryJson =
+      bestJson && isFiniteNum(bestJson?.current?.temperature_2m)
+        ? bestJson
+        : jmaJson && isFiniteNum(jmaJson?.current?.temperature_2m)
+        ? jmaJson
+        : kmaJson && isFiniteNum(kmaJson?.current?.temperature_2m)
+        ? kmaJson
+        : null;
+
+    if (!primaryJson) {
+      try {
+        const plainRes = await fetch(buildForecastModelUrl(targetLat, targetLng), {
+          signal: AbortSignal.timeout(5500),
+        });
+        if (plainRes.ok) {
+          const plainJson = await plainRes.json().catch(() => null);
+          if (plainJson && isFiniteNum(plainJson?.current?.temperature_2m)) {
+            bestJson = plainJson;
+            primaryJson = plainJson;
+          }
+        }
+      } catch {
+        /* try caller's nearest-station fallback */
+      }
     }
+
+    return { primaryJson, bestJson, kmaJson, jmaJson };
+  }
+
+  async function fetchMarineWithNearestFallback(lat: number, lng: number) {
+    try {
+      const directRes = await fetch(buildMarineUrl(lat, lng), { signal: AbortSignal.timeout(5500) });
+      if (directRes.ok) {
+        const directJson = await directRes.json().catch(() => null);
+        if (
+          directJson &&
+          (isFiniteNum(directJson?.current?.wave_height) ||
+            isFiniteNum(directJson?.current?.sea_surface_temperature))
+        ) {
+          return { marineJson: directJson, marineReferenceLabel: '현위치 해상·연안' };
+        }
+      }
+    } catch {
+      /* fall through to nearest coastal station */
+    }
+
+    const sortedCoastal = COASTAL_MARINE_STATIONS.map((st) => ({
+      ...st,
+      distKm: calculateDistanceKm({ lat, lng }, st),
+    })).sort((a, b) => a.distKm - b.distKm);
+
+    for (const st of sortedCoastal.slice(0, 3)) {
+      try {
+        const fallbackMarineRes = await fetch(buildMarineUrl(st.lat, st.lng), {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (fallbackMarineRes.ok) {
+          const fallbackMarineJson = await fallbackMarineRes.json().catch(() => null);
+          if (
+            fallbackMarineJson &&
+            (isFiniteNum(fallbackMarineJson?.current?.wave_height) ||
+              isFiniteNum(fallbackMarineJson?.current?.sea_surface_temperature))
+          ) {
+            return {
+              marineJson: fallbackMarineJson,
+              marineReferenceLabel: `가까운 ${st.name} (약 ${Math.max(1, Math.round(st.distKm))}km)`,
+            };
+          }
+        }
+      } catch {
+        /* try next coastal station */
+      }
+    }
+
+    return { marineJson: null, marineReferenceLabel: '인근 연안 관측 참고' };
+  }
+
+  // KMA-calibrated live weather & marine wave/SST proxy for selected/device coordinates with nearest-station fallback
+  app.get('/api/weather/fishing', async (req, res) => {
+    const rawLat = Number(req.query.lat);
+    const rawLng = Number(req.query.lng);
+    const lat = Number.isFinite(rawLat) ? rawLat : 35.1587;
+    const lng = Number.isFinite(rawLng) ? rawLng : 129.1604;
 
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     const kstClock = getServerKstClock();
+    const cacheKey = `${lat.toFixed(2)},${lng.toFixed(2)},${kstClock.isoHourPrefix}`;
+    const cached = weatherCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      res.json(cached.value);
+      return;
+    }
 
     try {
-      const [bestSettled, kmaSettled, jmaSettled, marineSettled] = await Promise.allSettled([
-        fetch(buildForecastModelUrl(lat, lng, 'best_match'), { signal: AbortSignal.timeout(5500) }),
-        fetch(buildForecastModelUrl(lat, lng, 'kma_seamless'), { signal: AbortSignal.timeout(4500) }),
-        fetch(buildForecastModelUrl(lat, lng, 'jma_seamless'), { signal: AbortSignal.timeout(4500) }),
-        fetch(buildMarineUrl(lat, lng), { signal: AbortSignal.timeout(5500) }),
-      ]);
+      const marinePromise = fetchMarineWithNearestFallback(lat, lng);
 
-      const bestJson =
-        bestSettled.status === 'fulfilled' && bestSettled.value.ok
-          ? await bestSettled.value.json().catch(() => null)
-          : null;
-      const kmaJson =
-        kmaSettled.status === 'fulfilled' && kmaSettled.value.ok
-          ? await kmaSettled.value.json().catch(() => null)
-          : null;
-      const jmaJson =
-        jmaSettled.status === 'fulfilled' && jmaSettled.value.ok
-          ? await jmaSettled.value.json().catch(() => null)
-          : null;
+      // 1) Try exact map-selected / active coordinates first
+      let usedFallbackStation: { name: string; distanceKm: number } | null = null;
+      let bundle = await fetchForecastBundleForPoint(lat, lng);
 
-      const primaryJson =
-        bestJson && isFiniteNum(bestJson?.current?.temperature_2m)
-          ? bestJson
-          : jmaJson && isFiniteNum(jmaJson?.current?.temperature_2m)
-          ? jmaJson
-          : kmaJson;
+      // 2) If exact point forecast is unavailable, automatically probe the closest nearby Korean weather stations
+      if (!bundle.primaryJson || !isFiniteNum(bundle.primaryJson?.current?.temperature_2m)) {
+        const nearestStations = getSortedNearestWeatherStations({ lat, lng }).slice(0, 4);
+        for (const st of nearestStations) {
+          const candidate = await fetchForecastBundleForPoint(st.lat, st.lng);
+          if (candidate.primaryJson && isFiniteNum(candidate.primaryJson?.current?.temperature_2m)) {
+            bundle = candidate;
+            usedFallbackStation = { name: st.name, distanceKm: st.distanceKm };
+            break;
+          }
+        }
+      }
 
+      const { primaryJson, bestJson, kmaJson, jmaJson } = bundle;
       const primaryCurrent = primaryJson?.current;
+
+      // 3) Guaranteed non-failing nearest-station KST seasonal payload if all external endpoints are down
       if (!primaryJson || !primaryCurrent || !isFiniteNum(primaryCurrent.temperature_2m)) {
-        res.status(502).json({ error: '기상 데이터를 불러오지 못했습니다.' });
+        const fallbackPayload = buildNearestStationFallbackWeather({ lat, lng });
+        res.json(fallbackPayload);
         return;
       }
 
@@ -1493,47 +1595,7 @@ ${optionalContextLines ? `[참고 해역·환경]\n${optionalContextLines}` : ''
         kmaJson.hourly.temperature_2m.some((v: unknown) => isFiniteNum(v));
       const hasJmaData = isFiniteNum(jmaJson?.current?.temperature_2m);
 
-      let marineJson: any =
-        marineSettled.status === 'fulfilled' && marineSettled.value.ok
-          ? await marineSettled.value.json().catch(() => null)
-          : null;
-
-      let marineReferenceLabel = '현위치 해상·연안';
-      if (
-        !marineJson ||
-        (!isFiniteNum(marineJson?.current?.wave_height) &&
-          !isFiniteNum(marineJson?.current?.sea_surface_temperature))
-      ) {
-        // Device is likely slightly inland; probe the nearest Korean coastal marine station for wave & SST
-        let nearestStation = COASTAL_MARINE_STATIONS[0];
-        let minKm = calculateDistanceKm({ lat, lng }, nearestStation);
-        for (const st of COASTAL_MARINE_STATIONS.slice(1)) {
-          const d = calculateDistanceKm({ lat, lng }, st);
-          if (d < minKm) {
-            minKm = d;
-            nearestStation = st;
-          }
-        }
-        try {
-          const fallbackMarineRes = await fetch(
-            buildMarineUrl(nearestStation.lat, nearestStation.lng),
-            { signal: AbortSignal.timeout(4500) }
-          );
-          if (fallbackMarineRes.ok) {
-            const fallbackMarineJson = await fallbackMarineRes.json().catch(() => null);
-            if (
-              fallbackMarineJson &&
-              (isFiniteNum(fallbackMarineJson?.current?.wave_height) ||
-                isFiniteNum(fallbackMarineJson?.current?.sea_surface_temperature))
-            ) {
-              marineJson = fallbackMarineJson;
-              marineReferenceLabel = `가까운 ${nearestStation.name} (약 ${Math.round(minKm)}km)`;
-            }
-          }
-        } catch {
-          /* ignore coastal fallback failure */
-        }
-      }
+      const { marineJson, marineReferenceLabel } = await marinePromise;
 
       const fTimes: string[] = Array.isArray(primaryJson?.hourly?.time)
         ? primaryJson.hourly.time
@@ -1732,14 +1794,17 @@ ${optionalContextLines ? `[참고 해역·환경]\n${optionalContextLines}` : ''
         ? marineJson.current.sea_surface_temperature
         : null;
 
-      const modelLabel =
+      const baseModelLabel =
         hasKmaCurrent || hasKmaHourly
           ? '기상청(KMA) 수치예보 보정 실황'
           : hasJmaData
           ? '동아시아 연안·기상 보정 모델'
           : '고해상도 실시간 기상 모델';
+      const modelLabel = usedFallbackStation
+        ? `가까운 ${usedFallbackStation.name} (약 ${Math.max(1, Math.round(usedFallbackStation.distanceKm))}km) ${baseModelLabel}`
+        : baseModelLabel;
 
-      res.json({
+      const payload = {
         temperatureC: finalTemperatureC,
         weatherCode: finalWeatherCode,
         windSpeedMs: finalWindSpeedMs,
@@ -1770,10 +1835,17 @@ ${optionalContextLines ? `[참고 해역·환경]\n${optionalContextLines}` : ''
         marineReferenceLabel,
         isLive: true,
         hourlySeries,
+      };
+
+      weatherCache.set(cacheKey, {
+        value: payload,
+        expiresAt: Date.now() + WEATHER_CACHE_TTL_MS,
       });
+
+      res.json(payload);
     } catch (error: any) {
-      console.error('Weather fishing proxy error:', error);
-      res.status(500).json({ error: error.message || '기상 정보 조회 중 오류가 발생했습니다.' });
+      console.error('Weather fishing nearest-station fallback triggered:', error);
+      res.json(buildNearestStationFallbackWeather({ lat, lng }));
     }
   });
 

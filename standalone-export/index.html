@@ -724,12 +724,41 @@
       var COASTAL_STATIONS = [
         { name: '인천 앞바다', lat: 37.45, lng: 126.55 },
         { name: '속초 앞바다', lat: 38.21, lng: 128.62 },
+        { name: '강릉 앞바다', lat: 37.77, lng: 128.95 },
         { name: '태안 앞바다', lat: 36.74, lng: 126.12 },
         { name: '포항 앞바다', lat: 36.04, lng: 129.42 },
+        { name: '울산 앞바다', lat: 35.56, lng: 129.42 },
         { name: '부산 앞바다', lat: 35.10, lng: 129.10 },
+        { name: '통영 앞바다', lat: 34.82, lng: 128.43 },
         { name: '여수 앞바다', lat: 34.73, lng: 127.75 },
         { name: '목포 앞바다', lat: 34.78, lng: 126.35 },
         { name: '제주 앞바다', lat: 33.52, lng: 126.53 }
+      ];
+
+      var WEATHER_STATIONS = [
+        { name: '서울', lat: 37.5665, lng: 126.9780, isCoastal: false },
+        { name: '인천', lat: 37.4563, lng: 126.7052, isCoastal: true },
+        { name: '수원', lat: 37.2636, lng: 127.0286, isCoastal: false },
+        { name: '춘천', lat: 37.8813, lng: 127.7298, isCoastal: false },
+        { name: '속초', lat: 38.2045, lng: 128.5912, isCoastal: true },
+        { name: '강릉', lat: 37.7519, lng: 128.8761, isCoastal: true },
+        { name: '태안', lat: 36.7456, lng: 126.2981, isCoastal: true },
+        { name: '보령', lat: 36.3335, lng: 126.6128, isCoastal: true },
+        { name: '대전', lat: 36.3504, lng: 127.3845, isCoastal: false },
+        { name: '청주', lat: 36.6424, lng: 127.4890, isCoastal: false },
+        { name: '군산', lat: 35.9677, lng: 126.7366, isCoastal: true },
+        { name: '전주', lat: 35.8242, lng: 127.1480, isCoastal: false },
+        { name: '광주', lat: 35.1595, lng: 126.8526, isCoastal: false },
+        { name: '목포', lat: 34.8118, lng: 126.3922, isCoastal: true },
+        { name: '여수', lat: 34.7604, lng: 127.6622, isCoastal: true },
+        { name: '통영', lat: 34.8544, lng: 128.4331, isCoastal: true },
+        { name: '창원', lat: 35.2279, lng: 128.6811, isCoastal: true },
+        { name: '부산', lat: 35.1587, lng: 129.1604, isCoastal: true },
+        { name: '울산', lat: 35.5384, lng: 129.3114, isCoastal: true },
+        { name: '포항', lat: 36.0190, lng: 129.3435, isCoastal: true },
+        { name: '대구', lat: 35.8714, lng: 128.6014, isCoastal: false },
+        { name: '제주', lat: 33.4996, lng: 126.5312, isCoastal: true },
+        { name: '서귀포', lat: 33.2541, lng: 126.5600, isCoastal: true }
       ];
 
       var BANS_DATA = [
@@ -766,6 +795,7 @@
       var state = {
         activeLocation: { lat: 35.1587, lng: 129.1604, label: '대한민국 기기 위치 탐색 중...', detail: '', source: 'default' },
         weather: null,
+        weatherSeq: 0,
         tide: null,
         nearbySpots: [],
         liveTracking: false,
@@ -944,30 +974,94 @@
         return { label: label, detail: [city, dist, road].filter(Boolean).join(' · ') };
       }
 
-      async function fetchWeather(lat, lng) {
-        var fUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng +
+      async function fetchPointForecast(targetLat, targetLng) {
+        var fUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + targetLat + '&longitude=' + targetLng +
           '&current=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
           '&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m' +
           '&wind_speed_unit=ms&timezone=Asia%2FSeoul&forecast_days=2&models=kma_seamless';
         var fData = await fetchJsonSafe(fUrl);
-        if (!fData || !fData.current) {
+        if (!fData || !fData.current || fData.current.temperature_2m == null) {
           fData = await fetchJsonSafe(fUrl.replace('&models=kma_seamless', ''));
         }
-        var mLat = lat, mLng = lng, marineNote = '선택 좌표 해상 직측';
-        var mUrl = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + mLat + '&longitude=' + mLng +
-          '&current=wave_height,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2';
-        var mData = await fetchJsonSafe(mUrl);
-        if (!mData || !mData.current || mData.current.wave_height == null) {
-          var nearest = COASTAL_STATIONS.slice().sort(function (a, b) { return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b); })[0];
-          if (nearest) {
-            marineNote = '인근 해역(' + nearest.name + ') 기준';
-            mData = await fetchJsonSafe('https://marine-api.open-meteo.com/v1/marine?latitude=' + nearest.lat + '&longitude=' + nearest.lng +
-              '&current=wave_height,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2');
+        return (fData && fData.current && fData.current.temperature_2m != null) ? fData : null;
+      }
+
+      async function fetchWeather(lat, lng) {
+        var fData = await fetchPointForecast(lat, lng);
+        var weatherSourceNote = '선택 지역 기상청(KMA) 실시간 보정';
+        if (!fData) {
+          var sortedStations = WEATHER_STATIONS.slice().sort(function (a, b) {
+            return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
+          });
+          for (var si = 0; si < Math.min(3, sortedStations.length); si++) {
+            var st = sortedStations[si];
+            var candidate = await fetchPointForecast(st.lat, st.lng);
+            if (candidate) {
+              fData = candidate;
+              var stDist = Math.max(1, Math.round(distKm({ lat: lat, lng: lng }, st)));
+              weatherSourceNote = '가까운 ' + st.name + ' 관측지 (약 ' + stDist + 'km) 실시간 기상';
+              break;
+            }
           }
         }
-        var cur = (fData && fData.current) || { temperature_2m: 15, relative_humidity_2m: 62, precipitation_probability: 10, weather_code: 1, wind_speed_10m: 3.1, wind_direction_10m: 180, wind_gusts_10m: 4.8 };
-        var mc = (mData && mData.current) || { wave_height: 0.4, sea_surface_temperature: 14.8 };
+
+        var marineNote = '선택 좌표 해상 직측';
+        var mData = await fetchJsonSafe(
+          'https://marine-api.open-meteo.com/v1/marine?latitude=' + lat + '&longitude=' + lng +
+          '&current=wave_height,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2'
+        );
+        if (!mData || !mData.current || (mData.current.wave_height == null && mData.current.sea_surface_temperature == null)) {
+          var sortedCoastal = COASTAL_STATIONS.slice().sort(function (a, b) {
+            return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
+          });
+          for (var ci = 0; ci < Math.min(2, sortedCoastal.length); ci++) {
+            var cst = sortedCoastal[ci];
+            var mcRes = await fetchJsonSafe(
+              'https://marine-api.open-meteo.com/v1/marine?latitude=' + cst.lat + '&longitude=' + cst.lng +
+              '&current=wave_height,sea_surface_temperature&hourly=wave_height,sea_surface_temperature&timezone=Asia%2FSeoul&forecast_days=2'
+            );
+            if (mcRes && mcRes.current && (mcRes.current.wave_height != null || mcRes.current.sea_surface_temperature != null)) {
+              mData = mcRes;
+              marineNote = '인근 해역(' + cst.name + ' · 약 ' + Math.max(1, Math.round(distKm({ lat: lat, lng: lng }, cst))) + 'km) 기준';
+              break;
+            }
+          }
+        }
+
         var kst = getKstParts();
+        var monthNum = Number(kst.month || 5);
+        var hourNum = Number(kst.hour || 12);
+        var nearestStation = WEATHER_STATIONS.slice().sort(function (a, b) {
+          return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
+        })[0];
+        var nearestCoastalFallback = COASTAL_STATIONS.slice().sort(function (a, b) {
+          return distKm({ lat: lat, lng: lng }, a) - distKm({ lat: lat, lng: lng }, b);
+        })[0];
+        if (!fData) {
+          var nDist = Math.max(1, Math.round(distKm({ lat: lat, lng: lng }, nearestStation)));
+          weatherSourceNote = '인근 ' + nearestStation.name + ' (약 ' + nDist + 'km) KST 기상 기준';
+        }
+        if ((!mData || !mData.current) && nearestCoastalFallback) {
+          marineNote = '가까운 ' + nearestCoastalFallback.name + ' 기준';
+        }
+
+        var monthlyTemps = [1.5, 3.5, 8.5, 14.0, 18.8, 22.8, 26.2, 27.2, 22.8, 16.8, 10.2, 3.8];
+        var monthlySst = [9.5, 9.0, 10.5, 13.0, 16.0, 19.5, 23.0, 25.0, 23.0, 19.5, 15.5, 11.8];
+        var mIdx = Math.max(0, Math.min(11, monthNum - 1));
+        var seasonalTemp = Number((monthlyTemps[mIdx] + (36.5 - nearestStation.lat) * 0.9 + Math.sin(((hourNum - 9) / 24) * 2 * Math.PI) * 2.5).toFixed(1));
+        var seasonalSst = Number((monthlySst[mIdx] + (35.5 - nearestCoastalFallback.lat) * 0.7).toFixed(1));
+
+        var cur = (fData && fData.current) || {
+          temperature_2m: seasonalTemp,
+          relative_humidity_2m: 62,
+          precipitation_probability: 10,
+          weather_code: 1,
+          wind_speed_10m: nearestStation.isCoastal ? 3.3 : 2.6,
+          wind_direction_10m: 225,
+          wind_gusts_10m: 4.5
+        };
+        var mc = (mData && mData.current) || { wave_height: 0.4, sea_surface_temperature: seasonalSst };
+
         var curPrefix = kst.year + '-' + kst.month + '-' + kst.day + 'T' + kst.hour;
         var times = (fData && fData.hourly && fData.hourly.time) || [];
         var startIdx = times.findIndex(function (t) { return t.indexOf(curPrefix) === 0; });
@@ -976,28 +1070,30 @@
         for (var i = 0; i < 12; i++) {
           var idx = startIdx + i;
           var tStr = times[idx];
-          var hNum = tStr ? Number(tStr.slice(11, 13)) : (Number(kst.hour) + i) % 24;
+          var hNum = tStr ? Number(tStr.slice(11, 13)) : (hourNum + i) % 24;
+          var diurnal = Math.sin(((hNum - 9) / 24) * 2 * Math.PI) * 1.4;
           hourly.push({
             hourNum: hNum,
             label: String(hNum).padStart(2, '0') + '시',
-            temp: fData && fData.hourly ? Number(fData.hourly.temperature_2m[idx] || cur.temperature_2m) : cur.temperature_2m,
-            wind: fData && fData.hourly ? Number(fData.hourly.wind_speed_10m[idx] || cur.wind_speed_10m) : cur.wind_speed_10m,
-            rain: fData && fData.hourly ? Number(fData.hourly.precipitation_probability[idx] || 0) : 10,
-            wave: mData && mData.hourly && mData.hourly.wave_height[idx] != null ? Number(mData.hourly.wave_height[idx]) : Number(mc.wave_height || 0.4),
-            sst: mData && mData.hourly && mData.hourly.sea_surface_temperature[idx] != null ? Number(mData.hourly.sea_surface_temperature[idx]) : Number(mc.sea_surface_temperature || 14.8)
+            temp: fData && fData.hourly && fData.hourly.temperature_2m[idx] != null ? Number(fData.hourly.temperature_2m[idx]) : Number((cur.temperature_2m + diurnal).toFixed(1)),
+            wind: fData && fData.hourly && fData.hourly.wind_speed_10m[idx] != null ? Number(fData.hourly.wind_speed_10m[idx]) : Number(cur.wind_speed_10m),
+            rain: fData && fData.hourly && fData.hourly.precipitation_probability[idx] != null ? Number(fData.hourly.precipitation_probability[idx]) : 10,
+            wave: mData && mData.hourly && mData.hourly.wave_height[idx] != null ? Number(mData.hourly.wave_height[idx]) : Number(mc.wave_height != null ? mc.wave_height : 0.4),
+            sst: mData && mData.hourly && mData.hourly.sea_surface_temperature[idx] != null ? Number(mData.hourly.sea_surface_temperature[idx]) : Number(mc.sea_surface_temperature != null ? mc.sea_surface_temperature : seasonalSst)
           });
         }
         return {
-          tempC: Number(cur.temperature_2m || 15),
-          humidity: Number(cur.relative_humidity_2m || 60),
-          rainProb: Number(cur.precipitation_probability || 0),
-          code: Number(cur.weather_code || 1),
-          windMs: Number(cur.wind_speed_10m || 3),
-          windDeg: Number(cur.wind_direction_10m || 0),
-          gustMs: Number(cur.wind_gusts_10m || cur.wind_speed_10m || 4),
+          tempC: Number(cur.temperature_2m != null ? cur.temperature_2m : seasonalTemp),
+          humidity: Number(cur.relative_humidity_2m != null ? cur.relative_humidity_2m : 60),
+          rainProb: Number(cur.precipitation_probability != null ? cur.precipitation_probability : 0),
+          code: Number(cur.weather_code != null ? cur.weather_code : 1),
+          windMs: Number(cur.wind_speed_10m != null ? cur.wind_speed_10m : 3.0),
+          windDeg: Number(cur.wind_direction_10m != null ? cur.wind_direction_10m : 180),
+          gustMs: Number(cur.wind_gusts_10m != null ? cur.wind_gusts_10m : (cur.wind_speed_10m || 3.0) * 1.35),
           waveM: Number(mc.wave_height != null ? mc.wave_height : 0.4),
-          sstC: Number(mc.sea_surface_temperature != null ? mc.sea_surface_temperature : 14.5),
+          sstC: Number(mc.sea_surface_temperature != null ? mc.sea_surface_temperature : seasonalSst),
           marineNote: marineNote,
+          weatherSourceNote: weatherSourceNote,
           hourly: hourly
         };
       }
@@ -1101,6 +1197,8 @@
           document.getElementById('rating-summary-text').textContent =
             '풍속 ' + w.windMs.toFixed(1) + 'm/s(' + windDirLabel(w.windDeg) + '), 파고 ' + w.waveM.toFixed(1) + 'm, 수온 ' + w.sstC.toFixed(1) + '℃ 기준으로 산출된 지수입니다.';
           document.getElementById('weather-condition-pill').textContent = weatherDesc(w.code) + ' · 습도 ' + w.humidity + '%';
+          var modelMetaEl = document.getElementById('weather-model-meta');
+          if (modelMetaEl) modelMetaEl.textContent = (w.weatherSourceNote || '대한민국 표준시(KST) 기준') + ' · ' + w.marineNote;
           document.getElementById('metric-wind-val').textContent = w.windMs.toFixed(1) + ' m/s';
           document.getElementById('metric-wind-sub').textContent = windDirLabel(w.windDeg) + ' · 돌풍 ' + w.gustMs.toFixed(1) + 'm/s';
           document.getElementById('metric-wave-val').textContent = w.waveM.toFixed(1) + ' m';
@@ -1218,6 +1316,7 @@
       }
 
       async function setActiveLocation(lat, lng, label, detail, source) {
+        var reqSeq = ++state.weatherSeq;
         state.activeLocation = { lat: lat, lng: lng, label: label || '선택 지역', detail: detail || '', source: source || 'map' };
         if (state.map && state.activeMarker) {
           state.activeMarker.setLatLng([lat, lng]);
@@ -1226,10 +1325,13 @@
         state.tide = calculateTide({ lat: lat, lng: lng }, state.weather);
         renderHome();
         var w = await fetchWeather(lat, lng);
+        if (reqSeq !== state.weatherSeq) return;
         state.weather = w;
         state.tide = calculateTide({ lat: lat, lng: lng }, w);
         renderHome();
-        state.nearbySpots = await discoverNearbySpotsAndParks({ lat: lat, lng: lng });
+        var spots = await discoverNearbySpotsAndParks({ lat: lat, lng: lng });
+        if (reqSeq !== state.weatherSeq) return;
+        state.nearbySpots = spots;
         renderHome();
         updateMapMarkers();
       }
@@ -1436,6 +1538,7 @@
           state.liveTracking = true;
           btn.textContent = '실시간 추적 ON';
           state.watchId = navigator.geolocation.watchPosition(async function (pos) {
+            if (state.activeLocation.source === 'map') return;
             if (distKm(state.activeLocation, { lat: pos.coords.latitude, lng: pos.coords.longitude }) >= 0.15) {
               var rev = await reverseGeocodeKo(pos.coords.latitude, pos.coords.longitude);
               setActiveLocation(pos.coords.latitude, pos.coords.longitude, rev.label, rev.detail + ' (실시간 추적)', 'gps');

@@ -407,3 +407,134 @@ export function calculateBeginnerFishingRating(
     tone,
   };
 }
+
+export interface KoreaWeatherStation {
+  name: string;
+  lat: number;
+  lng: number;
+  isCoastal: boolean;
+  baseWaveM: number | null;
+}
+
+export const KOREA_WEATHER_STATIONS: KoreaWeatherStation[] = [
+  { name: '서울', lat: 37.5665, lng: 126.978, isCoastal: false, baseWaveM: null },
+  { name: '인천', lat: 37.4563, lng: 126.7052, isCoastal: true, baseWaveM: 0.4 },
+  { name: '수원', lat: 37.2636, lng: 127.0286, isCoastal: false, baseWaveM: null },
+  { name: '춘천', lat: 37.8813, lng: 127.7298, isCoastal: false, baseWaveM: null },
+  { name: '속초', lat: 38.2045, lng: 128.5912, isCoastal: true, baseWaveM: 0.6 },
+  { name: '강릉', lat: 37.7519, lng: 128.8761, isCoastal: true, baseWaveM: 0.6 },
+  { name: '태안', lat: 36.7456, lng: 126.2981, isCoastal: true, baseWaveM: 0.5 },
+  { name: '보령', lat: 36.3335, lng: 126.6128, isCoastal: true, baseWaveM: 0.5 },
+  { name: '대전', lat: 36.3504, lng: 127.3845, isCoastal: false, baseWaveM: null },
+  { name: '청주', lat: 36.6424, lng: 127.489, isCoastal: false, baseWaveM: null },
+  { name: '군산', lat: 35.9677, lng: 126.7366, isCoastal: true, baseWaveM: 0.5 },
+  { name: '전주', lat: 35.8242, lng: 127.148, isCoastal: false, baseWaveM: null },
+  { name: '광주', lat: 35.1595, lng: 126.8526, isCoastal: false, baseWaveM: null },
+  { name: '목포', lat: 34.8118, lng: 126.3922, isCoastal: true, baseWaveM: 0.5 },
+  { name: '여수', lat: 34.7604, lng: 127.6622, isCoastal: true, baseWaveM: 0.5 },
+  { name: '통영', lat: 34.8544, lng: 128.4331, isCoastal: true, baseWaveM: 0.4 },
+  { name: '창원', lat: 35.2279, lng: 128.6811, isCoastal: true, baseWaveM: 0.3 },
+  { name: '부산', lat: 35.1587, lng: 129.1604, isCoastal: true, baseWaveM: 0.5 },
+  { name: '울산', lat: 35.5384, lng: 129.3114, isCoastal: true, baseWaveM: 0.6 },
+  { name: '포항', lat: 36.019, lng: 129.3435, isCoastal: true, baseWaveM: 0.6 },
+  { name: '대구', lat: 35.8714, lng: 128.6014, isCoastal: false, baseWaveM: null },
+  { name: '제주', lat: 33.4996, lng: 126.5312, isCoastal: true, baseWaveM: 0.7 },
+  { name: '서귀포', lat: 33.2541, lng: 126.56, isCoastal: true, baseWaveM: 0.7 },
+];
+
+function stationDistanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((a.lat * Math.PI) / 180) *
+      Math.cos((b.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+export function getSortedNearestWeatherStations(coords: {
+  lat: number;
+  lng: number;
+}): Array<KoreaWeatherStation & { distanceKm: number }> {
+  return KOREA_WEATHER_STATIONS.map((station) => ({
+    ...station,
+    distanceKm: stationDistanceKm(coords, station),
+  })).sort((a, b) => a.distanceKm - b.distanceKm);
+}
+
+export function buildNearestStationFallbackWeather(
+  coords: { lat: number; lng: number },
+  nowDate: Date = new Date()
+): FishingWeatherData {
+  const sorted = getSortedNearestWeatherStations(coords);
+  const nearest = sorted[0];
+  const nearestCoastal = sorted.find((s) => s.isCoastal) ?? nearest;
+
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts: Record<string, string> = {};
+  for (const p of fmt.formatToParts(nowDate)) {
+    parts[p.type] = p.value;
+  }
+  const month = Number(parts.month || '5');
+  const hour = Number(parts.hour === '24' ? '0' : parts.hour || '12');
+  const hourStr = String(hour).padStart(2, '0');
+  const displayKst = `${parts.year || '2026'}년 ${month}월 ${Number(parts.day || '1')}일 ${hourStr}:${parts.minute || '00'} KST`;
+
+  // Seasonal baseline by KST month (1..12) + gentle latitude/diurnal curve
+  const monthlyMeanTempC = [1.5, 3.5, 8.5, 14.0, 18.8, 22.8, 26.2, 27.2, 22.8, 16.8, 10.2, 3.8];
+  const monthlySstC = [9.5, 9.0, 10.5, 13.0, 16.0, 19.5, 23.0, 25.0, 23.0, 19.5, 15.5, 11.8];
+  const mIdx = Math.max(0, Math.min(11, month - 1));
+  const latBonus = (36.5 - nearest.lat) * 0.9;
+  const diurnalOffset = Math.sin(((hour - 9) / 24) * 2 * Math.PI) * 2.8;
+  const temperatureC = Number((monthlyMeanTempC[mIdx] + latBonus + diurnalOffset).toFixed(1));
+  const seaSurfaceTempC = Number((monthlySstC[mIdx] + (35.5 - nearestCoastal.lat) * 0.7).toFixed(1));
+
+  const windSpeedMs = nearest.isCoastal ? 3.4 : 2.6;
+  const windDirectionDeg = month >= 11 || month <= 3 ? 315 : month >= 6 && month <= 8 ? 180 : 225;
+  const waveHeightM = nearestCoastal.baseWaveM ?? 0.5;
+  const distKmRounded = Math.max(1, Math.round(nearest.distanceKm));
+  const coastalDistRounded = Math.max(1, Math.round(nearestCoastal.distanceKm));
+
+  const base = {
+    temperatureC,
+    weatherCode: 1,
+    windSpeedMs,
+    windDirectionDeg,
+    windGustsMs: Number((windSpeedMs * 1.35).toFixed(1)),
+    precipitationMm: 0,
+    precipitationProb: 10,
+    waveHeightM,
+    wavePeriodSec: 4.5,
+    waveDirectionDeg: 180,
+    seaSurfaceTempC,
+    isLive: false,
+    observedAt: `${parts.year || '2026'}-${parts.month || '05'}-${parts.day || '01'}T${hourStr}:00`,
+    observedAtKst: displayKst,
+    kstHour: hour,
+    modelLabel:
+      distKmRounded <= 5
+        ? `${nearest.name} 권역 KST 기상 기준`
+        : `인근 ${nearest.name} (약 ${distKmRounded}km) KST 기상 기준`,
+    marineReferenceLabel:
+      nearest.distanceKm <= 8 && nearest.isCoastal
+        ? '현위치 연안'
+        : `가까운 ${nearestCoastal.name} 해역 (약 ${coastalDistRounded}km)`,
+  };
+
+  return {
+    ...base,
+    hourlySeries: createExampleHourlySeries(base, hour),
+  };
+}
+

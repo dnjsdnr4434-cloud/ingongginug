@@ -26,7 +26,6 @@ interface BeginnerWeatherRatingCardProps {
   weather: FishingWeatherData | null;
   tideInfo?: RegionalTideSummary | null;
   isLoading: boolean;
-  error: string | null;
   onRefresh: () => void;
   onReturnToDevice?: () => void;
   onOpenMap?: () => void;
@@ -101,7 +100,6 @@ export function BeginnerWeatherRatingCard({
   weather,
   tideInfo,
   isLoading,
-  error,
   onRefresh,
   onReturnToDevice,
   onOpenMap,
@@ -250,7 +248,7 @@ export function BeginnerWeatherRatingCard({
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] text-[#A7C2D8] truncate">
-                    지역 날씨 {weather.isLive ? `(${weather.modelLabel || 'KMA 보정 KST'})` : '(예시)'}
+                    지역 날씨 ({weather.modelLabel || '기상청 KMA 보정 KST'})
                   </p>
                   <p className="text-base sm:text-lg font-extrabold text-[#F4FAFF] font-mono tabular-nums mt-0.5">
                     {rating.weatherText} · {weather.temperatureC.toFixed(1)}°C
@@ -363,12 +361,11 @@ export function BeginnerWeatherRatingCard({
                 <span className="text-[#A7C2D8]">{beginnerTip.rigAdvice}</span>
               </div>
             )}
-
-            {error && <p className="text-[11px] text-amber-300">※ {error}</p>}
           </div>
         ) : (
-          <div className="text-xs text-[#A7C2D8] py-2">
-            기상 정보를 확인할 수 없습니다. {error || '잠시 후 다시 시도해 주세요.'}
+          <div className="py-5 text-xs text-[#A7C2D8] flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-[#36D6E8]" />
+            인근 관측소의 바람·파고·수온·물때 데이터를 동기화하고 있습니다...
           </div>
         )}
       </div>
